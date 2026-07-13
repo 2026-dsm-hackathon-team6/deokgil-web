@@ -1,0 +1,37 @@
+{
+  "status": "success",
+  "results": [
+    {
+      "status": "success",
+      "filename": "logo-deokgili-mascot.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacokicai2a/logo-deokgili-mascot.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacokicai2a/logo-deokgili-mascot.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacokicai2a/logo-deokgili-mascot.png"
+    },
+    {
+      "status": "success",
+      "filename": "onboarding-schedule-planning.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacozacaiyq/onboarding-schedule-planning.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacozacaiyq/onboarding-schedule-planning.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacozacaiyq/onboarding-schedule-planning.png"
+    },
+    {
+      "status": "success",
+      "filename": "onboarding-ai-assistant.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpfycaiya/onboarding-ai-assistant.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpfycaiya/onboarding-ai-assistant.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpfycaiya/onboarding-ai-assistant.png"
+    },
+    {
+      "status": "success",
+      "filename": "onboarding-way-home.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpuqcaiza/onboarding-way-home.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpuqcaiza/onboarding-way-home.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpuqcaiza/onboarding-way-home.png"
+    }
+  ],
+  "success_count": 4,
+  "failed_count": 0,
+  "running_count": 0,
+  "message": "Generated 4/4 images total"
+}
