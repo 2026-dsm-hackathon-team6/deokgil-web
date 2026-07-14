@@ -7,16 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { markEventAsDeleted } from "@/lib/events";
-import {
-  ArrowLeft,
-  Calendar,
-  MapPin,
-  Clock,
-  CloudSun,
-  Navigation,
-  Thermometer,
-  Trash2,
-} from "lucide-react";
+import Clock2 from "../assets/Clock.svg";
+import Location from "../assets/Location.svg";
+import Sunny from "../assets/Sunny.svg";
+import Temperature from "../assets/Temperature.svg";
+import { ArrowLeft, Calendar, MapPin, Trash2, Clock } from "lucide-react";
 
 const checklist = [
   { id: 1, label: "티켓 (모바일)", checked: true },
@@ -81,28 +76,29 @@ export default function EventDetail() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
-                <Clock size={14} className="text-[#22B8AD]" />
+                <img src={Clock2} alt="시계" className="w-5" />
                 <div>
                   <p className="text-[10px] text-[#64748B]">추천 출발</p>
                   <p className="text-xs font-bold text-[#0F172A]">15:40</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
-                <Navigation size={14} className="text-[#22B8AD]" />
+                <img src={Location} alt="지도" className="w-5" />
                 <div>
                   <p className="text-[10px] text-[#64748B]">이동 시간</p>
                   <p className="text-xs font-bold text-[#0F172A]">1시간 10분</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
-                <CloudSun size={14} className="text-[#F59E0B]" />
+                <img src={Sunny} alt="날씨" className="w-5" />
                 <div>
                   <p className="text-[10px] text-[#64748B]">날씨</p>
                   <p className="text-xs font-bold text-[#0F172A]">맑음</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
-                <Thermometer size={14} className="text-[#EF4444]" />
+                <img src={Temperature} alt="날씨" className="w-5" />
+
                 <div>
                   <p className="text-[10px] text-[#64748B]">기온</p>
                   <p className="text-xs font-bold text-[#0F172A]">28°C</p>

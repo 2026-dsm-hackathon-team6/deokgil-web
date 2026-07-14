@@ -99,7 +99,7 @@ export default function Home() {
 
           <section className="mt-5 rounded-[26px] bg-[#38D9C7] px-6 pb-5 pt-6 text-[#063F3A] shadow-[0_14px_32px_rgba(56,217,199,0.2)]">
             <p className="mt-6 text-sm font-bold">이제 출발할 시간이에요</p>
-            <h2 className="mt-2 text-[28px] font-medium leading-[1.35] tracking-[-0.045em]">
+            <h2 className="font-deokgil-display mt-2 text-[28px] font-medium leading-[1.35] tracking-[-0.045em]">
               15분 안에 출발하면
               <br />
               여유롭게 도착해요.
@@ -149,7 +149,7 @@ export default function Home() {
             <div className="flex items-end justify-between">
               <div>
                 <h2 className="mt-1 text-lg font-extrabold text-[#0F172A]">
-                  오늘, 이것만 기억하세요
+                  오늘의 브리핑
                 </h2>
               </div>
               <button

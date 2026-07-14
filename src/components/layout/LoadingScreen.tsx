@@ -7,7 +7,7 @@ type LoadingScreenProps = {
 
 export default function LoadingScreen({
   message = "덕길이가 준비하고 있어요",
-  description = "잠시만 기다려 주세요.",
+  description = "잠시만 기다려 주세요",
 }: LoadingScreenProps) {
   return (
     <MobileFrame>
@@ -33,15 +33,14 @@ export default function LoadingScreen({
         </strong>
         <p className="relative mt-2 text-sm text-[#64748B]">{description}</p>
 
-        <span className="relative mt-7 flex h-5 items-center gap-1.5" aria-hidden="true">
+        <span
+          className="relative mt-7 flex h-5 items-center gap-1.5"
+          aria-hidden="true"
+        >
           <i className="h-2 w-2 animate-bounce rounded-full bg-[#22B8AD] [animation-delay:-0.3s]" />
           <i className="h-2 w-2 animate-bounce rounded-full bg-[#22B8AD] [animation-delay:-0.15s]" />
           <i className="h-2 w-2 animate-bounce rounded-full bg-[#22B8AD]" />
         </span>
-
-        <p className="absolute bottom-10 text-[10px] font-bold tracking-[0.2em] text-[#22B8AD]">
-          DEOKGIL AI ASSISTANT
-        </p>
       </div>
     </MobileFrame>
   );
