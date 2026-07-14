@@ -43,7 +43,7 @@ export default function BottomNav() {
 
   return (
     <nav className="glass-nav fixed bottom-0 left-1/2 z-50 w-full max-w-97.5 -translate-x-1/2 border-t safe-bottom">
-      <div className="grid h-[72px] grid-cols-5 px-1">
+      <div className="grid h-18 grid-cols-5 px-1">
         {navItems.map((item) => {
           const isActive = item.match.some((path) =>
             location.pathname.startsWith(path),
@@ -64,7 +64,7 @@ export default function BottomNav() {
                   src={item.iconAsset}
                   alt=""
                   aria-hidden="true"
-                  className={`h-[21px] w-6 shrink-0 object-contain transition-opacity ${
+                  className={`h-5.25 w-6 shrink-0 object-contain transition-opacity ${
                     isActive ? "opacity-100" : "opacity-40"
                   }`}
                   style={{

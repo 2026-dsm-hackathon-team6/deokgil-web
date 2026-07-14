@@ -9,6 +9,7 @@ import {
 } from "@/lib/googleAuth";
 import { loginWithGoogle, saveAuthTokens } from "@/lib/auth";
 import { normalizeAuthenticatedUser, saveAuthenticatedUser, saveUserProfile } from "@/lib/profile";
+import Logo from "../assets/Logo.svg";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -63,13 +64,13 @@ export default function Login() {
       <div className="flex flex-col h-screen px-6 pt-20 pb-8">
         {/* Logo and branding */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-20 h-20 rounded-2xl bg-[#22B8AD] flex items-center justify-center mb-6 shadow-lg shadow-teal-200 overflow-hidden">
-            <img
-              src="https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacokicai2a/logo-deokgili-mascot.png"
-              alt="덕길이 로고"
-              className="w-16 h-16 object-contain"
-            />
-          </div>
+          {/* <div className="w-20 h-20 rounded-2xl bg-[#22B8AD] flex items-center justify-center mb-6 shadow-lg shadow-teal-200 overflow-hidden"> */}
+          <img
+            src={Logo}
+            alt="덕길이 로고"
+            className="w-20 h-20 object-contain flex items-center justify-center mb-6  overflow-hidden"
+          />
+          {/* </div> */}
           <h1 className="text-3xl font-bold text-[#0F172A] mb-2">덕길이</h1>
           <p className="text-[#64748B] text-sm text-center leading-relaxed">
             AI가 추천하는 최적의 덕질 일정
