@@ -1,6 +1,6 @@
 import MobileFrame from "@/components/layout/MobileFrame";
 import { pastEvents } from "@/data/pastEvents";
-import { ArrowLeft, CalendarDays, Check, Clock3, MapPin } from "lucide-react";
+import { ArrowLeft, Check, MapPin } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 const timeline = [
@@ -20,7 +20,7 @@ const timeline = [
     title: "행사 종료 및 귀가",
     description: "추천 경로로 안전하게 귀가",
   },
-]
+];
 
 export default function PastEventDetail() {
   const navigate = useNavigate();
