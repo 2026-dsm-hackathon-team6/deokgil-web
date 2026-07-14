@@ -1,11 +1,14 @@
+import { useState } from "react";
 import MobileFrame from "@/components/layout/MobileFrame";
 import BottomNav from "@/components/layout/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { LogOut, ChevronRight, MapPin } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
+import { LogOut, ChevronRight, MapPin, UserX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { loadAuthenticatedUser, loadUserProfile } from "@/lib/profile";
+import { clearAuthenticatedUser, loadAuthenticatedUser, loadUserProfile } from "@/lib/profile";
+import { ApiError, clearAuthTokens, deleteAccountRequest, logoutRequest } from "@/lib/auth";
 import { pastEvents } from "@/data/pastEvents";
 import Event from "../assets/Event.svg";
 
@@ -15,6 +18,52 @@ export default function MyPage() {
   const authenticatedUser = loadAuthenticatedUser();
   const nickname = profile?.nickname || "덕민";
   const email = profile?.email || authenticatedUser?.email || "";
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logoutRequest();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "로그아웃 요청에 실패했어요.",
+      );
+    } finally {
+      clearAuthTokens();
+      clearAuthenticatedUser();
+      setIsLoggingOut(false);
+      navigate("/login", { replace: true });
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (isWithdrawing) return;
+    if (!window.confirm("정말 탈퇴하시겠어요? 계정 데이터는 복구할 수 없어요.")) {
+      return;
+    }
+    setIsWithdrawing(true);
+    try {
+      await deleteAccountRequest();
+      clearAuthTokens();
+      clearAuthenticatedUser();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "회원탈퇴에 실패했어요.",
+      );
+      // Invalid session or already-deleted account: nothing left to retry,
+      // so drop local state and send the user back to login.
+      if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
+        clearAuthTokens();
+        clearAuthenticatedUser();
+        navigate("/login", { replace: true });
+      }
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
   return (
     <MobileFrame>
       <div className="flex flex-col h-screen">
@@ -157,9 +206,25 @@ export default function MyPage() {
           </div> */}
 
           {/* Logout */}
-          <button className="w-full flex items-center justify-center gap-2 py-3 text-sm text-[#EF4444] font-medium cursor-pointer rounded-xl transition-colors">
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm text-[#EF4444] font-medium cursor-pointer rounded-xl transition-colors disabled:opacity-60"
+          >
             <LogOut size={16} />
-            로그아웃
+            {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
+          </button>
+
+          {/* Withdraw */}
+          <button
+            type="button"
+            onClick={handleWithdraw}
+            disabled={isWithdrawing}
+            className="w-full flex items-center justify-center gap-2 py-3 text-xs text-[#94A3B8] font-medium cursor-pointer rounded-xl transition-colors disabled:opacity-60"
+          >
+            <UserX size={14} />
+            {isWithdrawing ? "탈퇴 처리 중..." : "회원탈퇴"}
           </button>
         </div>
 
