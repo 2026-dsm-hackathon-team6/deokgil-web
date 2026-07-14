@@ -40,6 +40,7 @@ export function normalizeAuthenticatedUser(value: unknown): AuthenticatedUser {
       "image",
       "avatar",
       "avatar_url",
+      "profileImage",
       "profile_image",
     ]),
   };
@@ -62,6 +63,12 @@ const getProfileKey = (user = loadAuthenticatedUser()) => {
   const userKey = user?.id || user?.email || "guest";
   return `${PROFILE_KEY_PREFIX}:${userKey}`;
 };
+
+export function clearAuthenticatedUser() {
+  const user = loadAuthenticatedUser();
+  window.localStorage.removeItem(AUTH_USER_KEY);
+  window.localStorage.removeItem(getProfileKey(user ?? undefined));
+}
 
 export function saveUserProfile(profile: UserProfile) {
   window.localStorage.setItem(getProfileKey(), JSON.stringify(profile));
