@@ -29,7 +29,7 @@ const initialNotifications: NotificationItem[] = [
     time: "방금",
     unread: true,
     iconAsset: Time,
-    tone: "bg-[#DDF8F4] text-[#138A80]",
+    tone: "bg-[#F1F5F9] text-[#138A80]",
   },
   {
     id: 2,

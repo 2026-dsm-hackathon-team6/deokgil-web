@@ -4,6 +4,7 @@ import BottomNav from "@/components/layout/BottomNav";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import MobileFrame from "@/components/layout/MobileFrame";
 import Train from "../assets/Train.svg";
+// import Logo from "../assets/Logo.svg";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Camera,
@@ -316,31 +317,24 @@ export default function ScheduleCreate() {
 
           <main className="min-h-0 flex flex-1 flex-col overflow-y-auto px-5 pb-28">
             <section className="flex flex-1 flex-col items-center justify-center pb-5 text-center">
-              <div className="relative">
-                <span className="absolute -left-8 top-2 h-3 w-3 rounded-full bg-[#BDF2EC]" />
-                <span className="absolute -right-9 bottom-8 h-5 w-5 rounded-full bg-[#E6FAF7]" />
-                <span className="grid h-28 w-28 place-items-center rounded-[32px] bg-[#E6FAF7] text-[#22B8AD] shadow-[0_16px_35px_rgba(34,184,173,0.12)]">
-                  <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white shadow-sm">
-                    <CalendarDays size={31} strokeWidth={1.8} />
-                  </span>
-                </span>
-              </div>
+              {/* <span className="grid h-20 w-20 place-items-center rounded-3xl bg-[#E6FAF7] text-[#138A80]">
+                <CalendarDays size={32} strokeWidth={1.8} />
+              </span> */}
+              {/* <img src={Logo} alt="로고" className="w-20"/> */}
 
-              <p className="mt-9 text-[10px] font-extrabold tracking-[0.16em] text-[#22B8AD]">
-                AI SCHEDULE
-              </p>
-              <h2 className="mt-3 text-[28px] font-medium leading-[1.35] tracking-[-0.045em] text-[#0F172A]">
-                일정을 생성해볼까요?
+              <h2 className="mt-7 text-[27px] font-bold leading-[1.35] tracking-[-0.04em] text-[#0F172A]">
+                새 일정을 만들어볼까요?
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-[#64748B]">
                 아직 생성된 일정이 없어요.
-                <br />내 취향과 이동 시간을 반영해 준비해 드릴게요.
+                <br />
+                행사에 맞춰 출발부터 귀가까지 정리할 수 있어요.
               </p>
             </section>
 
             <section className="mb-4 flex items-center gap-3 rounded-2xl border border-[#DCE9E6] bg-[#F8FCFB] p-4 text-left">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#0F172A] text-white">
-                <Sparkles size={18} />
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#E6FAF7] text-[#138A80]">
+                <CalendarDays size={19} />
               </span>
               <span className="min-w-0 flex-1">
                 <small className="text-[9px] font-bold text-[#22B8AD]">
@@ -360,7 +354,7 @@ export default function ScheduleCreate() {
               onClick={() => setViewMode("preferences")}
               className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A] shadow-[0_8px_22px_rgba(34,184,173,0.22)]"
             >
-              AI 일정 생성하기
+              일정 만들기
             </button>
           </main>
 
@@ -513,7 +507,7 @@ export default function ScheduleCreate() {
               onClick={() => navigate("/return-planner")}
               className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-[#F5FBFA] p-4 text-left"
             >
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-[#22B8AD]">
+              <span className="grid h-10 w-10 place-items-center rounded-xl text-[#22B8AD]">
                 <img src={Train} alt="" />
               </span>
               <span className="flex-1">

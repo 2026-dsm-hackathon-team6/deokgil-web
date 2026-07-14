@@ -31,7 +31,7 @@ export default function Home() {
               type="button"
               aria-label="알림"
               onClick={() => navigate("/notifications")}
-              className="relative grid h-10 w-10 place-items-center rounded-full bg-[#F5FBFA] text-[#64748B]"
+              className="relative grid h-10 w-10 place-items-center rounded-full  text-[#64748B]"
             >
               <Bell size={18} />
               <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#EF4444] ring-1 ring-white" />
