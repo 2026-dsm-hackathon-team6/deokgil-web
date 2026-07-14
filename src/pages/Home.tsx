@@ -2,15 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { loadUserProfile } from "@/lib/profile";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileFrame from "@/components/layout/MobileFrame";
-import {
-  Bell,
-  Check,
-  ChevronRight,
-  House,
-  Sparkles,
-  Star,
-  TrainFront,
-} from "lucide-react";
+import Train from "../assets/Train.svg";
+import Check from "../assets/Check.svg";
+import Umbrella from "../assets/Umbrella.svg";
+import Clock from "../assets/Clock.svg";
+import { Bell, ChevronRight, House, Sparkles, Star } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -165,22 +161,36 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <article className="rounded-2xl border border-[#DCE9E6] p-4">
-                <p className="mt-1 text-[10px] text-[#64748B]">
-                  오후 9시부터 비
-                </p>
-                <strong className="mt-1 block text-xs text-[#0F172A]">
-                  작은 우산 챙기기
-                </strong>
+            <div className="mt-4 flex items-stretch gap-3">
+              <article className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-[#DCE9E6] p-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[#64748B]">
+                    오후 9시부터 비
+                  </p>
+                  <strong className="mt-1 block text-xs text-[#0F172A]">
+                    작은 우산 챙기기
+                  </strong>
+                </div>
+                <img
+                  src={Umbrella}
+                  alt="우산"
+                  className="h-7 w-7 shrink-0 object-contain"
+                />
               </article>
-              <article className="rounded-2xl border border-[#DCE9E6] p-4">
-                <p className="mt-1 text-[10px] text-[#64748B]">
-                  굿즈 수령 대기
-                </p>
-                <strong className="mt-1 block text-xs text-[#0F172A]">
-                  약 20분 예상
-                </strong>
+              <article className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-[#DCE9E6] p-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[#64748B]">
+                    굿즈 수령 대기
+                  </p>
+                  <strong className="mt-1 block text-xs text-[#0F172A]">
+                    약 20분 예상
+                  </strong>
+                </div>
+                <img
+                  src={Clock}
+                  alt="시계"
+                  className="h-8 w-8 shrink-0 object-contain"
+                />
               </article>
             </div>
           </section>
@@ -191,8 +201,8 @@ export default function Home() {
               onClick={() => navigate("/event/1")}
               className="flex min-h-18 w-full items-center gap-3 px-4 text-left"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#ECFDF5] text-[#16A34A]">
-                <Check size={17} />
+              <span className="grid h-9 w-9 place-items-center rounded-xl">
+                <img src={Check} className="w-7" alt="체크리스트" />
               </span>
               <span className="flex-1">
                 <small className="block text-[10px] text-[#64748B]">
@@ -208,7 +218,7 @@ export default function Home() {
               className="flex min-h-18 w-full items-center gap-3 border-t border-[#DCE9E6] px-4 text-left"
             >
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#E6FAF7] text-[#22B8AD]">
-                <TrainFront size={17} />
+                <img src={Train} className="w-5" alt="귀가 플래너" />
               </span>
               <span className="flex-1">
                 <small className="block text-[10px] text-[#64748B]">
