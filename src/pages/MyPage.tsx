@@ -3,16 +3,11 @@ import BottomNav from "@/components/layout/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { LogOut, Calendar, ChevronRight, MapPin } from "lucide-react";
+import { LogOut, ChevronRight, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { loadAuthenticatedUser, loadUserProfile } from "@/lib/profile";
 import { pastEvents } from "@/data/pastEvents";
-
-// const menuItems = [
-//   { icon: Bell, label: "알림 설정", desc: "푸시 알림 관리" },
-//   { icon: Shield, label: "개인정보 보호", desc: "데이터 관리 및 삭제" },
-//   { icon: HelpCircle, label: "도움말", desc: "자주 묻는 질문" },
-// ];
+import Event from "../assets/Event.svg";
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -47,7 +42,9 @@ export default function MyPage() {
                 )}
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-bold text-[#0F172A]">{nickname}</h2>
+                <h2 className="text-base font-bold text-[#0F172A]">
+                  {nickname}
+                </h2>
                 <p className="text-xs text-[#64748B]">{email}</p>
               </div>
               <button
@@ -100,7 +97,7 @@ export default function MyPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#F5FBFA] flex items-center justify-center">
-                      <Calendar size={16} className="text-[#64748B]" />
+                      <img src={Event} alt="일정" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#0F172A] truncate">
