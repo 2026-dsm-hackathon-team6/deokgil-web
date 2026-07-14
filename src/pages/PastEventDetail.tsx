@@ -112,7 +112,7 @@ export default function PastEventDetail() {
                   className="relative flex gap-4 pb-6 last:pb-0"
                 >
                   {index < timeline.length - 1 && (
-                    <span className="absolute left-[65px] top-6 h-full w-px bg-[#DCE9E6]" />
+                    <span className="absolute -bottom-[18px] left-[82px] top-[18px] w-px bg-[#DCE9E6]" />
                   )}
                   <time className="w-12 shrink-0 pt-0.5 text-xs font-bold text-[#64748B]">
                     {item.time}
