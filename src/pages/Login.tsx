@@ -1,20 +1,61 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileFrame from "@/components/layout/MobileFrame";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
+import {
+  fetchGoogleProfilePreview,
+  requestGoogleAuthorizationCode,
+} from "@/lib/googleAuth";
+import { loginWithGoogle, saveAuthTokens } from "@/lib/auth";
+import { normalizeAuthenticatedUser, saveAuthenticatedUser, saveUserProfile } from "@/lib/profile";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleGoogleSignupPreview = () => {
-    navigate("/profile/setup", {
-      state: {
-        googleProfile: {
-          name: "김덕길",
-          email: "deokgil@gmail.com",
-          image: "/google-profile-placeholder.svg",
-        },
-      },
-    });
+  const handleGoogleLogin = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const authorizationCode = await requestGoogleAuthorizationCode();
+      const response = await loginWithGoogle(authorizationCode);
+      saveAuthTokens(response);
+      const user = normalizeAuthenticatedUser(response.user);
+      saveAuthenticatedUser(user);
+      saveUserProfile({
+        nickname: user.name,
+        image: user.image,
+        email: user.email,
+      });
+      navigate("/home", { replace: true });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "로그인에 실패했어요.",
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const [authorizationCode, googleProfile] = await Promise.all([
+        requestGoogleAuthorizationCode(),
+        fetchGoogleProfilePreview(),
+      ]);
+      navigate("/profile/setup", {
+        state: { authorizationCode, googleProfile },
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "회원가입에 실패했어요.",
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -38,8 +79,9 @@ export default function Login() {
         {/* Login buttons */}
         <div className="space-y-3 mb-8">
           <Button
-            onClick={() => navigate("/home")}
-            className="w-full h-14 rounded-2xl bg-white border border-[#DCE9E6] text-[#0F172A] text-base font-medium shadow-sm cursor-pointer"
+            onClick={handleGoogleLogin}
+            disabled={isProcessing}
+            className="w-full h-14 rounded-2xl bg-white border border-[#DCE9E6] text-[#0F172A] text-base font-medium shadow-sm cursor-pointer disabled:opacity-60"
           >
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
               <path
@@ -66,8 +108,9 @@ export default function Login() {
             <span className="text-[#64748B]">덕길이가 처음이신가요?</span>
             <button
               type="button"
-              onClick={handleGoogleSignupPreview}
-              className="font-bold text-[#22B8AD] underline-offset-4 hover:underline"
+              onClick={handleGoogleSignup}
+              disabled={isProcessing}
+              className="font-bold text-[#22B8AD] underline-offset-4 hover:underline disabled:opacity-60"
             >
               회원가입
             </button>

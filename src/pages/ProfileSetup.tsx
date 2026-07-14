@@ -4,8 +4,11 @@ import MobileFrame from "@/components/layout/MobileFrame";
 import {
   loadAuthenticatedUser,
   loadUserProfile,
+  normalizeAuthenticatedUser,
+  saveAuthenticatedUser,
   saveUserProfile,
 } from "@/lib/profile";
+import { saveAuthTokens, signupWithGoogle } from "@/lib/auth";
 import { Camera, Check, UserRound } from "lucide-react";
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
@@ -22,9 +25,11 @@ export default function ProfileSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authenticatedUser = loadAuthenticatedUser();
   const savedProfile = loadUserProfile();
-  const googleProfile = (
-    location.state as { googleProfile?: GoogleProfilePreview } | null
-  )?.googleProfile;
+  const { googleProfile, authorizationCode } = (location.state as {
+    googleProfile?: GoogleProfilePreview;
+    authorizationCode?: string;
+  } | null) ?? {};
+  const isSignupFlow = Boolean(authorizationCode);
   const [nickname, setNickname] = useState(
     savedProfile?.nickname || authenticatedUser?.name || googleProfile?.name || "",
   );
@@ -32,6 +37,7 @@ export default function ProfileSetup() {
     savedProfile?.image || authenticatedUser?.image || googleProfile?.image || "",
   );
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -57,7 +63,7 @@ export default function ProfileSetup() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedNickname = nickname.trim();
 
@@ -68,6 +74,33 @@ export default function ProfileSetup() {
 
     if (!profileImage) {
       setErrorMessage("프로필 이미지를 선택해 주세요.");
+      return;
+    }
+
+    if (isSignupFlow && authorizationCode) {
+      setIsSubmitting(true);
+      try {
+        const response = await signupWithGoogle({
+          authorizationCode,
+          nickname: trimmedNickname,
+          profileImage,
+        });
+        saveAuthTokens(response);
+        const user = normalizeAuthenticatedUser(response.user);
+        saveAuthenticatedUser(user);
+        saveUserProfile({
+          nickname: user.name || trimmedNickname,
+          image: user.image || profileImage,
+          email: user.email || googleProfile?.email || "",
+        });
+        navigate("/home", { replace: true });
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "회원가입에 실패했어요.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -120,39 +153,55 @@ export default function ProfileSetup() {
           )}
 
           <section className={`${googleProfile ? "mt-8" : "mt-10"} flex flex-col items-center`}>
-            <button
-              type="button"
-              aria-label="프로필 이미지 선택"
-              onClick={() => fileInputRef.current?.click()}
-              className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
-            >
-              {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt="선택한 프로필"
-                  className="h-full w-full object-cover"
+            {isSignupFlow ? (
+              <div className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]">
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt="Google 프로필"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserRound size={40} strokeWidth={1.5} />
+                )}
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  aria-label="프로필 이미지 선택"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
+                >
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt="선택한 프로필"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <UserRound size={40} strokeWidth={1.5} />
+                  )}
+                  <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#38D9C7] text-[#063F3A]">
+                    <Camera size={16} />
+                  </span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
-              ) : (
-                <UserRound size={40} strokeWidth={1.5} />
-              )}
-              <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#38D9C7] text-[#063F3A]">
-                <Camera size={16} />
-              </span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-3 text-xs font-extrabold text-[#22B8AD]"
-            >
-              이미지 선택
-            </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-3 text-xs font-extrabold text-[#22B8AD]"
+                >
+                  이미지 선택
+                </button>
+              </>
+            )}
           </section>
 
           <label className="mt-10 block">
@@ -193,9 +242,10 @@ export default function ProfileSetup() {
         <div className="absolute bottom-0 left-0 right-0 bg-white px-6 pb-5 pt-3 safe-bottom">
           <button
             type="submit"
-            className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A]"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A] disabled:opacity-60"
           >
-            프로필 설정 완료
+            {isSubmitting ? "처리 중..." : "프로필 설정 완료"}
           </button>
         </div>
       </form>
