@@ -310,7 +310,7 @@ export default function ScheduleCreate() {
   if (viewMode === "landing") {
     return (
       <MobileFrame>
-        <div className="flex h-screen flex-col bg-white">
+        <div className="flex h-dvh flex-col bg-white">
           <header className="flex h-20 shrink-0 items-center px-5 pt-3">
             <h1 className="text-xl font-extrabold text-[#0F172A]">일정</h1>
           </header>
@@ -371,7 +371,7 @@ export default function ScheduleCreate() {
 
     return (
       <MobileFrame>
-        <div className="flex h-screen flex-col bg-white">
+        <div className="flex h-dvh flex-col bg-white">
           <header className="flex h-20 shrink-0 items-center justify-between px-5 pt-3">
             <h1 className="text-xl font-extrabold text-[#0F172A]">
               오늘의 일정
@@ -589,7 +589,7 @@ export default function ScheduleCreate() {
 
   return (
     <MobileFrame>
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-dvh flex-col bg-white">
         <header className="flex h-20 shrink-0 items-center justify-between px-5 pt-3">
           <div>
             <h1 className="mt-1 text-xl font-extrabold text-[#0F172A]">

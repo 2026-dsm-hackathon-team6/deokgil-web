@@ -42,7 +42,7 @@ export default function BottomNav() {
   const navigate = useNavigate();
 
   return (
-    <nav className="glass-nav fixed bottom-0 left-1/2 z-50 w-full max-w-97.5 -translate-x-1/2 border-t safe-bottom">
+    <nav className="glass-nav fixed bottom-0 left-1/2 z-50 w-full md:max-w-97.5 -translate-x-1/2 border-t safe-bottom">
       <div className="grid h-18 grid-cols-5 px-1">
         {navItems.map((item) => {
           const isActive = item.match.some((path) =>

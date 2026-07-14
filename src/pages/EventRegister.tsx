@@ -32,7 +32,7 @@ export default function EventRegister() {
 
   return (
     <MobileFrame>
-      <form onSubmit={handleSubmit} className="flex h-screen flex-col bg-white">
+      <form onSubmit={handleSubmit} className="flex h-dvh flex-col bg-white">
         <header className="flex h-16 shrink-0 items-end px-5 pb-2 pt-4">
           <button
             type="button"

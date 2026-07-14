@@ -84,7 +84,7 @@ export default function ReturnPlanner() {
 
   return (
     <MobileFrame className="map-planner-frame">
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-dvh flex-col bg-white">
         <header className="flex items-center gap-3 px-5 pb-3 pt-10">
           <button
             type="button"

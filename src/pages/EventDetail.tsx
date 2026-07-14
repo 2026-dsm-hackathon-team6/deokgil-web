@@ -44,7 +44,7 @@ export default function EventDetail() {
 
   return (
     <MobileFrame>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-dvh">
         {/* Header */}
         <header className="flex items-center gap-3 px-5 pt-10 pb-4">
           <button

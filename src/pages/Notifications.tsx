@@ -93,7 +93,7 @@ export default function Notifications() {
 
   return (
     <MobileFrame>
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-dvh flex-col bg-white">
         <header className="flex items-center justify-between border-b border-[#DCE9E6] px-5 pb-4 pt-10">
           <div className="flex items-center gap-3">
             <button

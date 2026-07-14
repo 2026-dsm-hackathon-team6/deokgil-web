@@ -11,9 +11,9 @@ export default function MobileFrame({
   className = "",
 }: MobileFrameProps) {
   return (
-    <div className="glass-stage min-h-screen flex items-start justify-center">
+    <div className="glass-stage min-h-dvh flex items-start justify-center">
       <div
-        className={`glass-app w-full max-w-97.5 min-h-screen relative overflow-hidden ${className}`}
+        className={`glass-app w-full md:max-w-97.5 min-h-dvh relative overflow-hidden ${className}`}
       >
         {children}
       </div>

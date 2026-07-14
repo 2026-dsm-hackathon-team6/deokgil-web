@@ -13,7 +13,7 @@ export default function LoadingScreen({
   return (
     <MobileFrame>
       <div
-        className="flex h-screen flex-col items-center justify-center bg-[#FFFFFF] px-6 text-center"
+        className="flex h-dvh flex-col items-center justify-center bg-[#FFFFFF] px-6 text-center"
         role="status"
         aria-live="polite"
       >

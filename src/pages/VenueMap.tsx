@@ -207,7 +207,7 @@ export default function VenueMap() {
 
   return (
     <MobileFrame className="bg-[#e8efe8]">
-      <div className="relative h-screen overflow-hidden bg-[#e8efe8]">
+      <div className="relative h-dvh overflow-hidden bg-[#e8efe8]">
         <header className="absolute left-4 right-4 top-4 z-30 flex gap-2.5">
           <div className="flex h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl bg-white px-4 shadow-[0_6px_22px_rgba(15,23,42,0.12)]">
             <Search

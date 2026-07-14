@@ -50,7 +50,7 @@ export default function Events() {
 
   return (
     <MobileFrame>
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-dvh flex-col bg-white">
         <header className="flex items-center justify-between px-5 pb-4 pt-10">
           <h1 className="text-xl font-extrabold text-[#0F172A]">내 이벤트</h1>
         </header>

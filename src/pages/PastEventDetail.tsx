@@ -30,7 +30,7 @@ export default function PastEventDetail() {
   if (!event) {
     return (
       <MobileFrame>
-        <div className="grid h-screen place-items-center px-6 text-center">
+        <div className="grid h-dvh place-items-center px-6 text-center">
           <div>
             <p className="text-base font-extrabold text-[#0F172A]">
               일정을 찾을 수 없어요.
@@ -50,7 +50,7 @@ export default function PastEventDetail() {
 
   return (
     <MobileFrame>
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-dvh flex-col bg-white">
         <header className="flex items-center gap-3 border-b border-[#DCE9E6] px-5 pb-4 pt-10">
           <button
             type="button"
