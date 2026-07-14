@@ -163,7 +163,7 @@ export default function ProfileSetup() {
                 type="button"
                 aria-label="프로필 이미지 선택"
                 onClick={() => fileInputRef.current?.click()}
-                className="grid h-full w-full place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
+                className="grid h-full w-full place-items-center overflow-hidden rounded-full border-2 border-solid border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
               >
                 {profileImage && !imageLoadFailed ? (
                   <img

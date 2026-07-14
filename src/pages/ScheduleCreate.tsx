@@ -547,12 +547,9 @@ export default function ScheduleCreate() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="delete-schedule-title"
-                className="w-full rounded-[24px] bg-white p-5 shadow-xl"
+                className="w-full rounded-[24px] bg-[#FFFFFF] p-5 shadow-xl"
               >
                 <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-[#DCE9E6]" />
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-[#FEF2F2] text-[#EF4444]">
-                  <Trash2 size={20} />
-                </span>
                 <h2
                   id="delete-schedule-title"
                   className="mt-4 text-lg font-extrabold text-[#0F172A]"
