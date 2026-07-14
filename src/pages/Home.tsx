@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadUserProfile } from "@/lib/profile";
 import BottomNav from "@/components/layout/BottomNav";
@@ -13,10 +14,11 @@ export default function Home() {
   const navigate = useNavigate();
   const profile = loadUserProfile();
   const nickname = profile?.nickname || "덕민";
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   return (
     <MobileFrame>
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-dvh flex-col bg-white">
         <header className="flex h-20 shrink-0 items-center justify-between px-5 pt-2">
           <button
             type="button"
@@ -42,11 +44,12 @@ export default function Home() {
               onClick={() => navigate("/mypage")}
               className="grid h-10 w-10 place-items-center rounded-full bg-[#E6FAF7] text-xs font-extrabold text-[#0F766E]"
             >
-              {profile?.image ? (
+              {profile?.image && !imageLoadFailed ? (
                 <img
                   src={profile.image}
                   alt={`${nickname} 프로필`}
                   className="h-full w-full rounded-full object-cover"
+                  onError={() => setImageLoadFailed(true)}
                 />
               ) : (
                 nickname.slice(0, 1)

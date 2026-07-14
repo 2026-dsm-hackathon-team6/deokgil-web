@@ -20,6 +20,7 @@ export default function MyPage() {
   const email = profile?.email || authenticatedUser?.email || "";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -66,7 +67,7 @@ export default function MyPage() {
   };
   return (
     <MobileFrame>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-dvh">
         {/* Header */}
         <header className="flex items-center gap-3 px-5 pt-10 pb-4">
           <h1 className="text-lg font-bold text-[#0F172A]">마이페이지</h1>
@@ -78,11 +79,12 @@ export default function MyPage() {
           <Card className="p-5 border border-[#DCE9E6]">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-[#E6FAF7] flex items-center justify-center overflow-hidden">
-                {profile?.image ? (
+                {profile?.image && !imageLoadFailed ? (
                   <img
                     src={profile.image}
                     alt={`${nickname} 프로필`}
                     className="h-full w-full object-cover"
+                    onError={() => setImageLoadFailed(true)}
                   />
                 ) : (
                   <span className="text-xl font-bold text-[#22B8AD]">
@@ -152,14 +154,14 @@ export default function MyPage() {
                       <p className="text-sm font-semibold text-[#0F172A] truncate">
                         {event.title}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-[#64748B]">
+                      <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                        <span className="shrink-0 text-xs text-[#64748B]">
                           {event.date}
                         </span>
-                        <span className="text-[#DCE9E6]">·</span>
-                        <div className="flex items-center gap-0.5">
-                          <MapPin size={10} className="text-[#64748B]" />
-                          <span className="text-xs text-[#64748B]">
+                        <span className="shrink-0 text-[#DCE9E6]">·</span>
+                        <div className="flex min-w-0 items-center gap-0.5">
+                          <MapPin size={10} className="shrink-0 text-[#64748B]" />
+                          <span className="truncate text-xs text-[#64748B]">
                             {event.venue}
                           </span>
                         </div>
