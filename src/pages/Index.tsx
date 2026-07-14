@@ -41,6 +41,7 @@ export default function Index() {
       <main className="bg-white text-[#0A1830]">
         <section className="onboarding-hero relative h-[720px] overflow-hidden">
           <img src={TotalLogo} alt="덕길이" className="absolute left-4 top-6 h-auto w-25 object-contain" />
+
           <div className="absolute left-1/2 top-[111px] flex h-[496px] w-[496px] -translate-x-1/2 flex-col items-center justify-center rounded-full border border-[#B9EEE8] bg-white text-center">
             <p className="mb-4 text-[21px] font-black tracking-[-0.045em] text-[#0A1830]">덕질을 <span className="text-[#22C7B5]">쉬운 길로</span></p>
             <img src={TotalLogo} alt="덕길이" className="h-auto w-[228px] object-contain" />
@@ -68,7 +69,13 @@ export default function Index() {
           <p className="relative mt-7 text-[9px] font-black tracking-[0.22em] text-[#3EDAC8]">READY FOR YOUR DAY?</p>
           <h2 className="relative mt-7 text-[35px] font-black leading-[1.2] tracking-[-0.04em]">다음 덕질은,<br />덕길이와 함께.</h2>
           <p className="relative mt-7 text-[12px] leading-[1.8] text-[#748097]">설레는 마음은 그대로 두고,<br />복잡한 준비는 덕길이와 함께해요.</p>
-          <button type="button" onClick={() => navigate("/login")} className="relative mt-10 flex h-[58px] w-[210px] items-center justify-center gap-2 rounded-full bg-[#36D5C3] text-[13px] font-extrabold text-[#062020] shadow-[0_12px_30px_rgba(54,213,195,0.2)] transition-transform active:scale-[0.98]">덕길이 시작하기 <ChevronRight size={15} strokeWidth={2.6} /></button>
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="relative mt-10 flex h-[58px] w-[210px] items-center justify-center gap-2 rounded-full bg-[#38D9C7] text-[13px] font-extrabold text-[#062020] transition-transform active:scale-[0.98]"
+          >
+            덕길이 시작하기 <ChevronRight size={15} strokeWidth={2.6} />
+          </button>
         </footer>
       </main>
     </MobileFrame>
