@@ -6,18 +6,66 @@ import {
 } from "react";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileFrame from "@/components/layout/MobileFrame";
+import Lock from "../assets/Lock.svg";
+import ConvenienceStore from "../assets/Convenience-store.svg";
+import Cafe from "../assets/Cafe.svg";
+import Restroom from "../assets/Restroom.svg";
 import {
-  Bath,
-  Coffee,
   LayoutGrid,
   LocateFixed,
-  LockKeyhole,
   Navigation,
   Search,
   Star,
-  Store,
   X,
 } from "lucide-react";
+
+function LockIcon({ size = 20 }: { size?: number }) {
+  return (
+    <img
+      src={Lock}
+      alt=""
+      aria-hidden="true"
+      className="object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+function ConvenienceStoreIcon({ size = 20 }: { size?: number }) {
+  return (
+    <img
+      src={ConvenienceStore}
+      alt=""
+      aria-hidden="true"
+      className="object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+function CafeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <img
+      src={Cafe}
+      alt=""
+      aria-hidden="true"
+      className="object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+function RestroomIcon({ size = 20 }: { size?: number }) {
+  return (
+    <img
+      src={Restroom}
+      alt=""
+      aria-hidden="true"
+      className="object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
+}
 
 const categories = [
   { id: "all", label: "전체" },
@@ -44,7 +92,7 @@ const facilities = [
     categoryLabel: "코인락커",
     distance: "도보 4분",
     status: "현재 이용 가능",
-    icon: LockKeyhole,
+    icon: LockIcon,
     markerClass: "left-[18%] top-[29%]",
     tone: "bg-[#f7fcfc] text-[#0f766e]",
   },
@@ -55,7 +103,7 @@ const facilities = [
     categoryLabel: "편의점",
     distance: "도보 3분",
     status: "24시간 영업",
-    icon: Store,
+    icon: ConvenienceStoreIcon,
     markerClass: "right-[14%] top-[21%]",
     tone: "bg-[#f0fdf4] text-[#16a34a]",
   },
@@ -66,7 +114,7 @@ const facilities = [
     categoryLabel: "카페",
     distance: "도보 5분",
     status: "현재 영업 중",
-    icon: Coffee,
+    icon: CafeIcon,
     markerClass: "right-[12%] top-[59%]",
     tone: "bg-[#fff7ed] text-[#ea580c]",
   },
@@ -77,7 +125,7 @@ const facilities = [
     categoryLabel: "화장실",
     distance: "도보 1분",
     status: "이용 가능",
-    icon: Bath,
+    icon: RestroomIcon,
     markerClass: "left-[10%] top-[64%]",
     tone: "bg-[#f0fdfa] text-[#22b8ad]",
   },
@@ -291,8 +339,8 @@ export default function VenueMap() {
 
               return (
                 <article key={facility.id} className="flex items-center gap-3">
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#f0fdfa] text-[#22c7bb]">
-                    <FacilityIcon size={23} />
+                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl  text-[#22c7bb]">
+                    <FacilityIcon size={30} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold text-[#22c7bb]">
