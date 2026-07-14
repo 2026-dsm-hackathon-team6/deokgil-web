@@ -91,3 +91,8 @@ export const config = {
     return getAPIBaseURL();
   },
 };
+
+// Google OAuth Web Client ID for Google Identity Services
+export function getGoogleClientId(): string {
+  return import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+}
