@@ -126,7 +126,7 @@ export default function ProfileSetup() {
 
   return (
     <MobileFrame>
-      <form onSubmit={handleSubmit} className="flex h-dvh flex-col bg-white">
+      <form onSubmit={handleSubmit} className="min-h-dvh bg-white">
         <header className="flex h-16 shrink-0 items-center px-4 pt-2">
           <button
             type="button"
@@ -144,7 +144,7 @@ export default function ProfileSetup() {
           </button>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5">
+        <main className="px-6 pb-6 pt-5">
           <p className="text-[10px] font-extrabold tracking-[0.17em] text-[#22B8AD]">
             {isSignupFlow ? "PROFILE SETUP" : "EDIT PROFILE"}
           </p>
@@ -158,26 +158,33 @@ export default function ProfileSetup() {
           </p>
 
           <section className="mt-11 flex flex-col items-center">
-            <button
-              type="button"
-              aria-label="프로필 이미지 선택"
-              onClick={() => fileInputRef.current?.click()}
-              className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
-            >
-              {profileImage && !imageLoadFailed ? (
-                <img
-                  src={profileImage}
-                  alt="선택한 프로필"
-                  className="h-full w-full object-cover"
-                  onError={() => setImageLoadFailed(true)}
-                />
-              ) : (
-                <UserRound size={40} strokeWidth={1.5} />
-              )}
-              <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#38D9C7] text-[#063F3A]">
+            <div className="relative h-28 w-28">
+              <button
+                type="button"
+                aria-label="프로필 이미지 선택"
+                onClick={() => fileInputRef.current?.click()}
+                className="grid h-full w-full place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
+              >
+                {profileImage && !imageLoadFailed ? (
+                  <img
+                    src={profileImage}
+                    alt="선택한 프로필"
+                    className="h-full w-full object-cover"
+                    onError={() => setImageLoadFailed(true)}
+                  />
+                ) : (
+                  <UserRound size={40} strokeWidth={1.5} />
+                )}
+              </button>
+              <button
+                type="button"
+                aria-label="프로필 이미지 변경"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#38D9C7] text-[#063F3A] shadow-sm"
+              >
                 <Camera size={16} />
-              </span>
-            </button>
+              </button>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -230,21 +237,21 @@ export default function ProfileSetup() {
               </p>
             </div>
           )}
-        </main>
 
-        <div className="shrink-0 border-t border-[#EDF4F2] bg-white px-6 pb-8 pt-3 safe-bottom">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A] disabled:opacity-60"
-          >
-            {isSubmitting
-              ? "처리 중..."
-              : isSignupFlow
-                ? "프로필 설정 완료"
-                : "변경사항 저장"}
-          </button>
-        </div>
+          <div className="mt-6 pb-8 safe-bottom">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A] disabled:opacity-60"
+            >
+              {isSubmitting
+                ? "처리 중..."
+                : isSignupFlow
+                  ? "프로필 설정 완료"
+                  : "변경사항 저장"}
+            </button>
+          </div>
+        </main>
       </form>
     </MobileFrame>
   );
