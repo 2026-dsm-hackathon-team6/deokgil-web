@@ -10,7 +10,6 @@ import {
   Sparkles,
   Star,
   TrainFront,
-  Umbrella,
 } from "lucide-react";
 
 export default function Home() {
@@ -168,10 +167,7 @@ export default function Home() {
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <article className="rounded-2xl border border-[#DCE9E6] p-4">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#E6FAF7] text-[#22B8AD]">
-                  <Umbrella size={17} />
-                </span>
-                <p className="mt-3 text-[10px] text-[#64748B]">
+                <p className="mt-1 text-[10px] text-[#64748B]">
                   오후 9시부터 비
                 </p>
                 <strong className="mt-1 block text-xs text-[#0F172A]">
@@ -179,10 +175,7 @@ export default function Home() {
                 </strong>
               </article>
               <article className="rounded-2xl border border-[#DCE9E6] p-4">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#FFFBEB] text-[#D97706]">
-                  <TrainFront size={17} />
-                </span>
-                <p className="mt-3 text-[10px] text-[#64748B]">
+                <p className="mt-1 text-[10px] text-[#64748B]">
                   굿즈 수령 대기
                 </p>
                 <strong className="mt-1 block text-xs text-[#0F172A]">
@@ -211,7 +204,7 @@ export default function Home() {
             </button>
             <button
               type="button"
-              onClick={() => navigate("/schedule/create")}
+              onClick={() => navigate("/return-planner")}
               className="flex min-h-18 w-full items-center gap-3 border-t border-[#DCE9E6] px-4 text-left"
             >
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#E6FAF7] text-[#22B8AD]">

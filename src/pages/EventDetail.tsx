@@ -13,8 +13,6 @@ import {
   MapPin,
   Clock,
   CloudSun,
-  Train,
-  CheckCircle2,
   Navigation,
   Thermometer,
   Trash2,
@@ -142,7 +140,6 @@ export default function EventDetail() {
           <Card className="p-4 border border-[#DCE9E6]">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-[#22B8AD]" />
                 <h3 className="text-sm font-bold text-[#0F172A]">
                   AI 체크리스트
                 </h3>
@@ -179,7 +176,6 @@ export default function EventDetail() {
           {/* Return Home Planner */}
           <Card className="p-4 border border-[#DCE9E6]">
             <div className="flex items-center gap-2 mb-3">
-              <Train size={14} className="text-[#22B8AD]" />
               <h3 className="text-sm font-bold text-[#0F172A]">귀가 플래너</h3>
             </div>
             <div className="space-y-2 bg-[#F5FBFA] rounded-xl p-3">

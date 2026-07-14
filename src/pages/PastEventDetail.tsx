@@ -1,21 +1,26 @@
 import MobileFrame from "@/components/layout/MobileFrame";
 import { pastEvents } from "@/data/pastEvents";
-import {
-  ArrowLeft,
-  CalendarDays,
-  Check,
-  Clock3,
-  MapPin,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Clock3, MapPin } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 const timeline = [
-  { time: "14:40", title: "행사장으로 출발", description: "예상 이동 시간 50분" },
-  { time: "15:30", title: "행사장 도착", description: "입장 전 티켓과 신분증 확인" },
+  {
+    time: "14:40",
+    title: "행사장으로 출발",
+    description: "예상 이동 시간 50분",
+  },
+  {
+    time: "15:30",
+    title: "행사장 도착",
+    description: "입장 전 티켓과 신분증 확인",
+  },
   { time: "17:00", title: "행사 시작", description: "즐거운 관람 시간" },
-  { time: "20:10", title: "행사 종료 및 귀가", description: "추천 경로로 안전하게 귀가" },
-];
+  {
+    time: "20:10",
+    title: "행사 종료 및 귀가",
+    description: "추천 경로로 안전하게 귀가",
+  },
+]
 
 export default function PastEventDetail() {
   const navigate = useNavigate();
@@ -55,7 +60,9 @@ export default function PastEventDetail() {
           >
             <ArrowLeft size={19} />
           </button>
-          <h1 className="text-lg font-extrabold text-[#0F172A]">과거 일정 상세</h1>
+          <h1 className="text-lg font-extrabold text-[#0F172A]">
+            과거 일정 상세
+          </h1>
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-5">
@@ -79,15 +86,13 @@ export default function PastEventDetail() {
 
           <section className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-[#DCE9E6] p-4">
-              <CalendarDays size={17} className="text-[#22B8AD]" />
-              <p className="mt-3 text-[10px] text-[#64748B]">행사 날짜</p>
+              <p className="mt-1 text-[10px] text-[#64748B]">행사 날짜</p>
               <strong className="mt-1 block text-sm text-[#0F172A]">
                 {event.date}
               </strong>
             </div>
             <div className="rounded-2xl border border-[#DCE9E6] p-4">
-              <Clock3 size={17} className="text-[#22B8AD]" />
-              <p className="mt-3 text-[10px] text-[#64748B]">진행 상태</p>
+              <p className="mt-1 text-[10px] text-[#64748B]">진행 상태</p>
               <strong className="mt-1 block text-sm text-[#0F172A]">
                 일정 완료
               </strong>
@@ -96,12 +101,16 @@ export default function PastEventDetail() {
 
           <section className="mt-7">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-[#22B8AD]" />
-              <h3 className="text-sm font-extrabold text-[#0F172A]">당시 일정</h3>
+              <h3 className="text-sm font-extrabold text-[#0F172A]">
+                당시 일정
+              </h3>
             </div>
             <div className="mt-4">
               {timeline.map((item, index) => (
-                <div key={item.time} className="relative flex gap-4 pb-6 last:pb-0">
+                <div
+                  key={item.time}
+                  className="relative flex gap-4 pb-6 last:pb-0"
+                >
                   {index < timeline.length - 1 && (
                     <span className="absolute left-[65px] top-6 h-full w-px bg-[#DCE9E6]" />
                   )}

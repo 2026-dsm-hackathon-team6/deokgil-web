@@ -20,6 +20,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AuthError = lazy(() => import("./pages/AuthError"));
 const ProfileSetup = lazy(() => import("./pages/ProfileSetup"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const ReturnPlanner = lazy(() => import("./pages/ReturnPlanner"));
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const AppRoutes = () => (
       <Route path="/auth/error" element={<AuthError />} />
       <Route path="/profile/setup" element={<ProfileSetup />} />
       <Route path="/notifications" element={<Notifications />} />
+      <Route path="/return-planner" element={<ReturnPlanner />} />
     </Routes>
   </Suspense>
 );

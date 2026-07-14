@@ -1,14 +1,20 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileFrame from "@/components/layout/MobileFrame";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Camera,
+  CalendarDays,
   Check,
   ChevronRight,
   House,
   Music,
+  Pencil,
+  Plus,
   ShoppingBag,
   Sparkles,
+  Trash2,
   TrainFront,
   Utensils,
 } from "lucide-react";
@@ -22,7 +28,19 @@ type ScheduleItem = {
   type: "start" | "arrival" | "activity" | "main" | "end";
 };
 
-type ViewMode = "preferences" | "preview" | "confirmed";
+type ChecklistItem = {
+  id: number;
+  label: string;
+  reason: string;
+  checked: boolean;
+};
+
+type ConfirmedSchedule = {
+  items: ScheduleItem[];
+  checklist: ChecklistItem[];
+};
+
+type ViewMode = "landing" | "preferences" | "preview" | "confirmed";
 
 const preferences = [
   {
@@ -96,29 +114,64 @@ const generatedSchedule: ScheduleItem[] = [
   },
 ];
 
-function loadConfirmedSchedule(): ScheduleItem[] | null {
+const generatedChecklist: ChecklistItem[] = [
+  { id: 1, label: "모바일 티켓", reason: "입장 시 확인해요", checked: true },
+  { id: 2, label: "신분증", reason: "본인 확인에 필요해요", checked: false },
+  { id: 3, label: "응원봉", reason: "공연 필수 준비물이에요", checked: false },
+  {
+    id: 4,
+    label: "보조배터리",
+    reason: "긴 대기 시간에 대비해요",
+    checked: false,
+  },
+  {
+    id: 5,
+    label: "접이식 우산",
+    reason: "오후 9시 비 예보가 있어요",
+    checked: false,
+  },
+];
+
+function loadConfirmedSchedule(): ConfirmedSchedule | null {
   try {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
     if (!storedValue) return null;
 
     const parsedValue = JSON.parse(storedValue) as { items?: ScheduleItem[] };
-    return Array.isArray(parsedValue.items) ? parsedValue.items : null;
+    if (!Array.isArray(parsedValue.items)) return null;
+
+    const parsedChecklist = (parsedValue as { checklist?: ChecklistItem[] })
+      .checklist;
+    return {
+      items: parsedValue.items,
+      checklist: Array.isArray(parsedChecklist)
+        ? parsedChecklist
+        : generatedChecklist.map((item) => ({ ...item })),
+    };
   } catch {
     return null;
   }
 }
 
 export default function ScheduleCreate() {
-  const [confirmedItems, setConfirmedItems] = useState<ScheduleItem[] | null>(
-    loadConfirmedSchedule,
-  );
+  const navigate = useNavigate();
+  const [confirmedSchedule, setConfirmedSchedule] =
+    useState<ConfirmedSchedule | null>(loadConfirmedSchedule);
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
-    confirmedItems ? "confirmed" : "preferences",
+    confirmedSchedule ? "confirmed" : "landing",
   );
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([
     "goods",
     "concert",
   ]);
+  const [draftSchedule, setDraftSchedule] = useState<ScheduleItem[]>(() =>
+    generatedSchedule.map((item) => ({ ...item })),
+  );
+  const [draftChecklist, setDraftChecklist] = useState<ChecklistItem[]>(() =>
+    generatedChecklist.map((item) => ({ ...item })),
+  );
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const togglePreference = (id: string) => {
     setSelectedPreferences((currentPreferences) =>
@@ -129,7 +182,8 @@ export default function ScheduleCreate() {
   };
 
   const confirmSchedule = () => {
-    const scheduleToSave = generatedSchedule.map((item) => ({ ...item }));
+    const scheduleToSave = draftSchedule.map((item) => ({ ...item }));
+    const checklistToSave = draftChecklist.map((item) => ({ ...item }));
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -138,24 +192,170 @@ export default function ScheduleCreate() {
         venue: "KSPO DOME",
         confirmedAt: new Date().toISOString(),
         items: scheduleToSave,
+        checklist: checklistToSave,
       }),
     );
-    setConfirmedItems(scheduleToSave);
+    setConfirmedSchedule({
+      items: scheduleToSave,
+      checklist: checklistToSave,
+    });
     setViewMode("confirmed");
+  };
+
+  const toggleConfirmedChecklist = (id: number, checked: boolean) => {
+    setConfirmedSchedule((currentSchedule) => {
+      if (!currentSchedule) return currentSchedule;
+
+      const updatedSchedule = {
+        ...currentSchedule,
+        checklist: currentSchedule.checklist.map((item) =>
+          item.id === id ? { ...item, checked } : item,
+        ),
+      };
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          eventTitle: "2026 IU WORLD TOUR",
+          eventDate: "2026-07-18",
+          venue: "KSPO DOME",
+          items: updatedSchedule.items,
+          checklist: updatedSchedule.checklist,
+        }),
+      );
+      return updatedSchedule;
+    });
+  };
+
+  const createSchedulePreview = () => {
+    setDraftSchedule(generatedSchedule.map((item) => ({ ...item })));
+    setDraftChecklist(generatedChecklist.map((item) => ({ ...item })));
+    setIsEditingSchedule(false);
+    setViewMode("preview");
+  };
+
+  const updateDraftItem = (
+    index: number,
+    field: "time" | "label" | "description",
+    value: string,
+  ) => {
+    setDraftSchedule((items) =>
+      items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
+
+  const updateDraftChecklistItem = (
+    id: number,
+    field: "label" | "reason",
+    value: string,
+  ) => {
+    setDraftChecklist((items) =>
+      items.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
+
+  const addDraftChecklistItem = () => {
+    setDraftChecklist((items) => [
+      ...items,
+      {
+        id: Math.max(0, ...items.map((item) => item.id)) + 1,
+        label: "새 준비물",
+        reason: "필요한 내용을 입력해 주세요",
+        checked: false,
+      },
+    ]);
+  };
+
+  const removeDraftChecklistItem = (id: number) => {
+    setDraftChecklist((items) => items.filter((item) => item.id !== id));
   };
 
   const resetSchedule = () => {
     window.localStorage.removeItem(STORAGE_KEY);
-    setConfirmedItems(null);
-    setViewMode("preferences");
+    setConfirmedSchedule(null);
+    setIsDeleteDialogOpen(false);
+    setViewMode("landing");
   };
 
-  if (viewMode === "confirmed" && confirmedItems) {
+  if (viewMode === "landing") {
+    return (
+      <MobileFrame>
+        <div className="flex h-screen flex-col bg-white">
+          <header className="flex h-20 shrink-0 items-center px-5 pt-3">
+            <h1 className="text-xl font-extrabold text-[#0F172A]">일정</h1>
+          </header>
+
+          <main className="min-h-0 flex flex-1 flex-col overflow-y-auto px-5 pb-28">
+            <section className="flex flex-1 flex-col items-center justify-center pb-5 text-center">
+              <div className="relative">
+                <span className="absolute -left-8 top-2 h-3 w-3 rounded-full bg-[#BDF2EC]" />
+                <span className="absolute -right-9 bottom-8 h-5 w-5 rounded-full bg-[#E6FAF7]" />
+                <span className="grid h-28 w-28 place-items-center rounded-[32px] bg-[#E6FAF7] text-[#22B8AD] shadow-[0_16px_35px_rgba(34,184,173,0.12)]">
+                  <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white shadow-sm">
+                    <CalendarDays size={31} strokeWidth={1.8} />
+                  </span>
+                </span>
+              </div>
+
+              <p className="mt-9 text-[10px] font-extrabold tracking-[0.16em] text-[#22B8AD]">
+                AI SCHEDULE
+              </p>
+              <h2 className="mt-3 text-[28px] font-medium leading-[1.35] tracking-[-0.045em] text-[#0F172A]">
+                일정을 생성해볼까요?
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-[#64748B]">
+                아직 생성된 일정이 없어요.
+                <br />내 취향과 이동 시간을 반영해 준비해 드릴게요.
+              </p>
+            </section>
+
+            <section className="mb-4 flex items-center gap-3 rounded-2xl border border-[#DCE9E6] bg-[#F8FCFB] p-4 text-left">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#0F172A] text-white">
+                <Sparkles size={18} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <small className="text-[9px] font-bold text-[#22B8AD]">
+                  예정된 이벤트
+                </small>
+                <strong className="mt-1 block truncate text-sm text-[#0F172A]">
+                  2026 IU WORLD TOUR
+                </strong>
+                <span className="mt-1 block text-[10px] text-[#64748B]">
+                  7월 18일 · KSPO DOME
+                </span>
+              </span>
+            </section>
+
+            <button
+              type="button"
+              onClick={() => setViewMode("preferences")}
+              className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A] shadow-[0_8px_22px_rgba(34,184,173,0.22)]"
+            >
+              AI 일정 생성하기
+            </button>
+          </main>
+
+          <BottomNav />
+        </div>
+      </MobileFrame>
+    );
+  }
+
+  if (viewMode === "confirmed" && confirmedSchedule) {
+    const completedChecklistCount = confirmedSchedule.checklist.filter(
+      (item) => item.checked,
+    ).length;
+
     return (
       <MobileFrame>
         <div className="flex h-screen flex-col bg-white">
           <header className="flex h-20 shrink-0 items-center justify-between px-5 pt-3">
-            <h1 className="text-xl font-extrabold text-[#0F172A]">오늘의 일정</h1>
+            <h1 className="text-xl font-extrabold text-[#0F172A]">
+              오늘의 일정
+            </h1>
             <button
               type="button"
               onClick={resetSchedule}
@@ -185,21 +385,52 @@ export default function ScheduleCreate() {
               </strong>
             </section>
 
-            <section className="mt-3 flex items-center gap-3 rounded-xl border border-[#7CEEDF] px-4 py-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#E6FAF7] text-[#22B8AD]">
-                <Sparkles size={15} />
-              </span>
-              <p className="text-[11px] leading-relaxed text-[#64748B]">
-                <strong className="text-[#0F172A]">
-                  AI가 교통 상황을 반영했어요
-                </strong>
-                <br />
-                출발 시간이 10분 빨라졌어요.
-              </p>
+            <section className="mt-4 rounded-2xl border border-[#DCE9E6] p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-extrabold text-[#0F172A]">
+                    AI 체크리스트
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold text-[#64748B]">
+                  {completedChecklistCount}/{confirmedSchedule.checklist.length}{" "}
+                  완료
+                </span>
+              </div>
+              <div className="mt-3 space-y-2.5">
+                {confirmedSchedule.checklist.map((item) => (
+                  <label
+                    key={item.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl bg-[#F8FCFB] p-3"
+                  >
+                    <Checkbox
+                      checked={item.checked}
+                      onCheckedChange={(checked) =>
+                        toggleConfirmedChecklist(item.id, checked === true)
+                      }
+                      className="h-5 w-5 rounded-md border-[#DCE9E6] data-[state=checked]:border-[#22B8AD] data-[state=checked]:bg-[#22B8AD]"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <strong
+                        className={`block text-xs ${
+                          item.checked
+                            ? "text-[#94A3B8] line-through"
+                            : "text-[#0F172A]"
+                        }`}
+                      >
+                        {item.label}
+                      </strong>
+                      <span className="mt-0.5 block text-[10px] text-[#64748B]">
+                        {item.reason}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
             </section>
 
             <section className="mt-7">
-              {confirmedItems.map((item, index) => {
+              {confirmedSchedule.items.map((item, index) => {
                 const isDone = index === 0;
                 const isNext = index === 1;
 
@@ -210,7 +441,9 @@ export default function ScheduleCreate() {
                   >
                     <time
                       className={`pt-0.5 text-[11px] ${
-                        isNext ? "font-extrabold text-[#22B8AD]" : "text-[#64748B]"
+                        isNext
+                          ? "font-extrabold text-[#22B8AD]"
+                          : "text-[#64748B]"
                       }`}
                     >
                       {item.time}
@@ -227,12 +460,14 @@ export default function ScheduleCreate() {
                       }`}
                     >
                       {isDone ? <Check size={11} /> : index + 1}
-                      {index < confirmedItems.length - 1 && (
+                      {index < confirmedSchedule.items.length - 1 && (
                         <i className="absolute left-1/2 top-5 -z-10 h-[58px] w-px -translate-x-1/2 bg-[#DCE9E6]" />
                       )}
                     </span>
                     <div className={isDone ? "opacity-45" : ""}>
-                      <strong className="text-sm text-[#0F172A]">{item.label}</strong>
+                      <strong className="text-sm text-[#0F172A]">
+                        {item.label}
+                      </strong>
                       <p className="mt-1 text-[11px] text-[#64748B]">
                         {item.description}
                       </p>
@@ -249,22 +484,84 @@ export default function ScheduleCreate() {
 
             <button
               type="button"
+              onClick={() => navigate("/return-planner")}
               className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-[#F5FBFA] p-4 text-left"
             >
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-[#22B8AD]">
                 <TrainFront size={18} />
               </span>
               <span className="flex-1">
-                <small className="text-[9px] text-[#22B8AD]">공연이 끝난 뒤</small>
+                <small className="text-[9px] text-[#22B8AD]">
+                  공연이 끝난 뒤
+                </small>
                 <strong className="mt-1 block text-xs text-[#0F172A]">
                   귀가 일정도 준비했어요
                 </strong>
               </span>
               <ChevronRight size={17} className="text-[#22B8AD]" />
             </button>
+
+            <button
+              type="button"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-[#EF4444] transition-colors hover:bg-[#FEF2F2]"
+            >
+              <Trash2 size={16} />
+              확정한 일정 삭제
+            </button>
           </main>
 
           <BottomNav />
+
+          {isDeleteDialogOpen && (
+            <div
+              className="absolute inset-0 z-[60] flex items-end bg-[#0F172A]/45 px-4 pb-5"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.currentTarget === event.target) {
+                  setIsDeleteDialogOpen(false);
+                }
+              }}
+            >
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-schedule-title"
+                className="w-full rounded-[24px] bg-white p-5 shadow-xl"
+              >
+                <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-[#DCE9E6]" />
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-[#FEF2F2] text-[#EF4444]">
+                  <Trash2 size={20} />
+                </span>
+                <h2
+                  id="delete-schedule-title"
+                  className="mt-4 text-lg font-extrabold text-[#0F172A]"
+                >
+                  확정한 일정을 삭제할까요?
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#64748B]">
+                  직접 수정한 내용을 포함한 현재 일정이 삭제돼요. 삭제한 일정은
+                  복구할 수 없어요.
+                </p>
+                <div className="mt-6 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteDialogOpen(false)}
+                    className="h-12 rounded-xl bg-[#F1F5F9] text-sm font-bold text-[#475569]"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetSchedule}
+                    className="h-12 rounded-xl bg-[#EF4444] text-sm font-bold text-white"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
       </MobileFrame>
     );
@@ -273,15 +570,22 @@ export default function ScheduleCreate() {
   return (
     <MobileFrame>
       <div className="flex h-screen flex-col bg-white">
-        <header className="flex h-20 shrink-0 items-center px-5 pt-3">
+        <header className="flex h-20 shrink-0 items-center justify-between px-5 pt-3">
           <div>
-            <p className="text-[9px] font-extrabold tracking-[0.15em] text-[#22B8AD]">
-              AI SCHEDULE
-            </p>
             <h1 className="mt-1 text-xl font-extrabold text-[#0F172A]">
               {viewMode === "preview" ? "추천 일정" : "AI 일정 생성"}
             </h1>
           </div>
+          {viewMode === "preview" && !isEditingSchedule && (
+            <button
+              type="button"
+              onClick={() => setIsEditingSchedule(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-[#F5FBFA] px-3 py-2 text-xs font-extrabold text-[#138A80]"
+            >
+              <Pencil size={13} />
+              직접 수정
+            </button>
+          )}
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-28 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -293,15 +597,17 @@ export default function ScheduleCreate() {
                   AI 취향 분석
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-[#64748B]">
-                  나의 덕질 스타일을 선택하면 AI가 맞춤형 일정을 생성해요.
-                  여러 개 선택할 수 있어요.
+                  나의 덕질 스타일을 선택하면 AI가 맞춤형 일정을 생성해요. 여러
+                  개 선택할 수 있어요.
                 </p>
               </section>
 
               <div className="mt-5 space-y-2.5">
                 {preferences.map((preference) => {
                   const Icon = preference.icon;
-                  const isSelected = selectedPreferences.includes(preference.id);
+                  const isSelected = selectedPreferences.includes(
+                    preference.id,
+                  );
 
                   return (
                     <button
@@ -348,7 +654,7 @@ export default function ScheduleCreate() {
               <button
                 type="button"
                 disabled={selectedPreferences.length === 0}
-                onClick={() => setViewMode("preview")}
+                onClick={createSchedulePreview}
                 className="mt-5 h-12 w-full rounded-xl bg-[#22B8AD] text-sm font-extrabold text-white disabled:opacity-40"
               >
                 AI 일정 생성하기
@@ -358,20 +664,113 @@ export default function ScheduleCreate() {
             <>
               <section className="rounded-2xl bg-[#E6FAF7] p-4">
                 <div className="flex items-center gap-2 text-xs font-extrabold text-[#22B8AD]">
-                  <Sparkles size={15} />
                   AI 생성 일정
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-[#64748B]">
                   굿즈 구매와 공연 집중 스타일에 맞춰 최적 일정을 만들었어요.
                 </p>
+                <p className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-[#138A80]">
+                  <Pencil size={11} /> 확정하기 전에 시간과 내용을 직접 수정할
+                  수 있어요.
+                </p>
+              </section>
+
+              <section className="mt-4 rounded-2xl border border-[#DCE9E6] p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Check size={15} className="text-[#22B8AD]" />
+                    <h3 className="text-sm font-extrabold text-[#0F172A]">
+                      함께 생성된 AI 체크리스트
+                    </h3>
+                  </div>
+                  <span className="rounded-md bg-[#E6FAF7] px-2 py-1 text-[9px] font-extrabold text-[#138A80]">
+                    {draftChecklist.length}개
+                  </span>
+                </div>
+                {isEditingSchedule ? (
+                  <div className="mt-3 space-y-2.5">
+                    {draftChecklist.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-[#DCE9E6] bg-[#F8FCFB] p-3"
+                      >
+                        <div className="flex items-end gap-2">
+                          <label className="min-w-0 flex-1">
+                            <span className="mb-1 block text-[9px] font-bold text-[#64748B]">
+                              준비물
+                            </span>
+                            <input
+                              value={item.label}
+                              onChange={(event) =>
+                                updateDraftChecklistItem(
+                                  item.id,
+                                  "label",
+                                  event.target.value,
+                                )
+                              }
+                              className="h-10 w-full rounded-lg border border-[#DCE9E6] bg-white px-3 text-xs font-bold text-[#0F172A] outline-none focus:border-[#22B8AD]"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeDraftChecklistItem(item.id)}
+                            aria-label={`${item.label} 삭제`}
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#FEF2F2] text-[#EF4444]"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                        <label className="mt-2 block">
+                          <span className="mb-1 block text-[9px] font-bold text-[#64748B]">
+                            안내 문구
+                          </span>
+                          <input
+                            value={item.reason}
+                            onChange={(event) =>
+                              updateDraftChecklistItem(
+                                item.id,
+                                "reason",
+                                event.target.value,
+                              )
+                            }
+                            className="h-10 w-full rounded-lg border border-[#DCE9E6] bg-white px-3 text-xs text-[#64748B] outline-none focus:border-[#22B8AD]"
+                          />
+                        </label>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addDraftChecklistItem}
+                      className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#7CEEDF] text-xs font-extrabold text-[#138A80]"
+                    >
+                      <Plus size={15} /> 준비물 추가
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {draftChecklist.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-2 rounded-xl bg-[#F8FCFB] px-3 py-2.5"
+                      >
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#DDF8F4] text-[#138A80]">
+                          <Check size={11} />
+                        </span>
+                        <span className="truncate text-[11px] font-bold text-[#0F172A]">
+                          {item.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section className="relative mt-6 pl-7">
                 <span className="absolute bottom-3 left-2.5 top-3 w-px bg-[#DCE9E6]" />
                 <div className="space-y-5">
-                  {generatedSchedule.map((item) => (
+                  {draftSchedule.map((item, index) => (
                     <article
-                      key={`${item.time}-${item.label}`}
+                      key={index}
                       className="relative flex items-start gap-3"
                     >
                       <span
@@ -383,18 +782,76 @@ export default function ScheduleCreate() {
                       >
                         {item.type === "main" && <Music size={10} />}
                       </span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <time className="rounded-md bg-[#F5FBFA] px-2 py-1 text-[10px] font-extrabold text-[#0F172A]">
-                            {item.time}
-                          </time>
-                          <strong className="text-sm text-[#0F172A]">
-                            {item.label}
-                          </strong>
-                        </div>
-                        <p className="mt-1 text-[11px] text-[#64748B]">
-                          {item.description}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        {isEditingSchedule ? (
+                          <div className="space-y-2 rounded-xl border border-[#DCE9E6] bg-[#F8FCFB] p-3">
+                            <div className="flex gap-2">
+                              <label className="w-[88px] shrink-0">
+                                <span className="mb-1 block text-[9px] font-bold text-[#64748B]">
+                                  시간
+                                </span>
+                                <input
+                                  type="time"
+                                  value={item.time}
+                                  onChange={(event) =>
+                                    updateDraftItem(
+                                      index,
+                                      "time",
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="h-10 w-full rounded-lg border border-[#DCE9E6] bg-white px-2 text-xs font-bold text-[#0F172A] outline-none focus:border-[#22B8AD]"
+                                />
+                              </label>
+                              <label className="min-w-0 flex-1">
+                                <span className="mb-1 block text-[9px] font-bold text-[#64748B]">
+                                  일정명
+                                </span>
+                                <input
+                                  value={item.label}
+                                  onChange={(event) =>
+                                    updateDraftItem(
+                                      index,
+                                      "label",
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="h-10 w-full rounded-lg border border-[#DCE9E6] bg-white px-3 text-xs font-bold text-[#0F172A] outline-none focus:border-[#22B8AD]"
+                                />
+                              </label>
+                            </div>
+                            <label className="block">
+                              <span className="mb-1 block text-[9px] font-bold text-[#64748B]">
+                                상세 내용
+                              </span>
+                              <input
+                                value={item.description}
+                                onChange={(event) =>
+                                  updateDraftItem(
+                                    index,
+                                    "description",
+                                    event.target.value,
+                                  )
+                                }
+                                className="h-10 w-full rounded-lg border border-[#DCE9E6] bg-white px-3 text-xs text-[#64748B] outline-none focus:border-[#22B8AD]"
+                              />
+                            </label>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <time className="rounded-md bg-[#F5FBFA] px-2 py-1 text-[10px] font-extrabold text-[#0F172A]">
+                                {item.time}
+                              </time>
+                              <strong className="text-sm text-[#0F172A]">
+                                {item.label}
+                              </strong>
+                            </div>
+                            <p className="mt-1 text-[11px] text-[#64748B]">
+                              {item.description}
+                            </p>
+                          </>
+                        )}
                       </div>
                     </article>
                   ))}
@@ -404,10 +861,26 @@ export default function ScheduleCreate() {
               <div className="mt-7 space-y-2">
                 <button
                   type="button"
-                  onClick={confirmSchedule}
-                  className="h-12 w-full rounded-xl bg-[#22B8AD] text-sm font-extrabold text-white"
+                  onClick={() => {
+                    if (isEditingSchedule) {
+                      setIsEditingSchedule(false);
+                      return;
+                    }
+                    confirmSchedule();
+                  }}
+                  className={`h-12 w-full rounded-xl text-sm font-extrabold ${
+                    isEditingSchedule
+                      ? "bg-[#38D9C7] text-[#063F3A]"
+                      : "bg-[#22B8AD] text-white"
+                  }`}
                 >
-                  이 일정으로 확정하기
+                  {isEditingSchedule ? (
+                    <span className="flex items-center justify-center gap-1.5">
+                      수정 완료
+                    </span>
+                  ) : (
+                    "이 일정으로 확정하기"
+                  )}
                 </button>
                 <button
                   type="button"

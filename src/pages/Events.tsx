@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileFrame from "@/components/layout/MobileFrame";
 import { loadDeletedEventIds } from "@/lib/events";
-import { ChevronRight, Plus, Sparkles } from "lucide-react";
+import { ChevronRight, Plus, Link } from "lucide-react";
 
 const upcomingEvents = [
   {
@@ -136,7 +136,7 @@ export default function Events() {
               )}
 
               <section className="mt-6 flex items-center justify-center gap-3 rounded-2xl bg-[#F5FBFA] px-5 py-5 text-[#64748B]">
-                <Sparkles size={19} className="shrink-0 text-[#22B8AD]" />
+                <Link size={19} />
                 <p className="text-[11px] leading-relaxed">
                   행사 링크만 붙여넣어도
                   <br />
