@@ -131,9 +131,10 @@ export type GoogleProfilePreview = {
 };
 
 /**
- * Best-effort fetch of the Google account's display name/email/photo for the
- * profile setup preview. Uses a separate implicit token grant since the
- * authorization-code flow does not expose profile info to the client.
+ * Fetches the Google account's display name/email/photo URL via a separate
+ * implicit token grant. Must be triggered by its own direct user click —
+ * the authorization-code popup and this one can't share a single gesture,
+ * the browser blocks the second `window.open` either way.
  */
 export async function fetchGoogleProfilePreview(): Promise<GoogleProfilePreview> {
   const clientId = requireClientId();

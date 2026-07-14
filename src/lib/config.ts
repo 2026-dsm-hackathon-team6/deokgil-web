@@ -79,7 +79,8 @@ export function getAPIBaseURL(): string {
   if (baseURL === "/") {
     return "";
   }
-  return baseURL;
+  // Strip any trailing slash(es) so callers can safely append a leading-slash path
+  return baseURL.replace(/\/+$/, "");
 }
 
 // For backward compatibility, but this should be avoided

@@ -37,9 +37,11 @@ export function clearAuthTokens() {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -63,15 +65,29 @@ async function request<T>(
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   }
 
+  const REQUEST_TIMEOUT_MS = 15000;
+  const timeoutController = new AbortController();
+  const timeoutId = window.setTimeout(
+    () => timeoutController.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
+
   let response: Response;
   try {
     response = await fetch(`${getAPIBaseURL()}${path}`, {
       method: options.method,
       headers,
       body: JSON.stringify(options.body ?? {}),
+      signal: timeoutController.signal,
     });
-  } catch {
-    throw new ApiError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 0);
+  } catch (error) {
+    const message =
+      error instanceof DOMException && error.name === "AbortError"
+        ? "서버 응답이 없어요. 네트워크 상태를 확인하고 다시 시도해 주세요."
+        : "서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+    throw new ApiError(message, 0);
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 
   const contentType = response.headers.get("content-type") || "";
@@ -80,18 +96,18 @@ async function request<T>(
     : null;
 
   if (!response.ok) {
+    const body = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
     const message =
-      (data && typeof data === "object" && "message" in data
-        ? String((data as { message?: unknown }).message)
-        : "") ||
+      (typeof body.message === "string" ? body.message : "") ||
       FALLBACK_MESSAGE_BY_STATUS[response.status] ||
       "요청을 처리하지 못했습니다.";
+    const code = typeof body.code === "string" ? body.code : undefined;
 
     // A 401 means the access token is expired or invalid — drop it so it
     // isn't reused on the next authenticated call.
     if (response.status === 401) clearAuthTokens();
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, code);
   }
 
   return data as T;
