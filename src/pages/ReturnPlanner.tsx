@@ -3,18 +3,18 @@ import {
   ArrowDownUp,
   ArrowLeft,
   Bike,
-  BusFront,
   CarFront,
   ChevronDown,
   Clock3,
   Footprints,
-  House,
-  MapPin,
   Navigation,
   TrainFront,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Bus from "../assets/Bus.svg";
+import Train from "../assets/Train.svg";
+import HomeIcon from "../assets/HomeIcon.svg";
 
 type RouteOption = {
   id: "safe" | "fast";
@@ -38,7 +38,7 @@ type RouteOption = {
 const routeOptions: RouteOption[] = [
   {
     id: "safe",
-    badge: "추천 · 여유로운 경로",
+    badge: "최적",
     duration: "1시간 7분",
     departure: "오후 9:40",
     arrival: "오후 10:47",
@@ -51,7 +51,7 @@ const routeOptions: RouteOption[] = [
     firstRide: "방화행 · 8개 역",
     transfer: "왕십리역에서 2호선 환승",
     secondRide: "내선순환 · 4개 역",
-    destination: "우리 집",
+    destination: "한빛아파트",
     lastDeparture: "22:36",
   },
   {
@@ -69,7 +69,7 @@ const routeOptions: RouteOption[] = [
     firstRide: "중앙보훈병원행 · 4개 역",
     transfer: "종합운동장역에서 2호선 환승",
     secondRide: "내선순환 · 6개 역",
-    destination: "우리 집",
+    destination: "한빛아파트",
     lastDeparture: "22:45",
   },
 ];
@@ -261,8 +261,8 @@ export default function ReturnPlanner() {
 
                     <div className="border-t border-[#E7EEEC] px-4 py-4">
                       <div className="grid grid-cols-[34px_minmax(0,1fr)] gap-x-3">
-                        <span className="relative z-10 grid h-8 w-8 place-items-center rounded-lg bg-[#DDF8F4] text-[#138A80]">
-                          <TrainFront size={15} />
+                        <span className="relative z-10 grid h-8 w-8 place-items-center rounded-lg text-[#138A80]">
+                          <img src={Train} alt="" />
                         </span>
                         <div className="min-w-0 pb-3">
                           <div className="flex min-w-0 items-center gap-2">
@@ -274,10 +274,7 @@ export default function ReturnPlanner() {
                             </strong>
                           </div>
                           <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[10px] text-[#64748B]">
-                            <BusFront
-                              size={12}
-                              className="shrink-0 text-[#22B8AD]"
-                            />
+                            <img src={Bus} alt="버스" />
                             <span className="truncate">{route.firstRide}</span>
                           </p>
                         </div>
@@ -294,15 +291,11 @@ export default function ReturnPlanner() {
                           </p>
                         </div>
 
-                        <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full bg-[#0F172A] text-white">
-                          <House size={14} />
+                        <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full  text-white">
+                          <img src={HomeIcon} alt="집" />
                         </span>
                         <div className="flex min-w-0 items-center justify-between gap-2 pt-1">
                           <strong className="flex min-w-0 items-center gap-1.5 text-xs text-[#0F172A]">
-                            <MapPin
-                              size={13}
-                              className="shrink-0 text-[#EF4444]"
-                            />
                             <span className="truncate">
                               {route.destination}
                             </span>

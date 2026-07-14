@@ -6,6 +6,7 @@ import Train from "../assets/Train.svg";
 import Check from "../assets/Check.svg";
 import Umbrella from "../assets/Umbrella.svg";
 import Clock from "../assets/Clock.svg";
+import TotalLogo from "../assets/TotalLogo.svg";
 import { Bell, ChevronRight, House, Sparkles, Star } from "lucide-react";
 
 export default function Home() {
@@ -22,14 +23,7 @@ export default function Home() {
             onClick={() => navigate("/home")}
             className="flex items-center gap-3"
           >
-            <span className="flex h-9 w-9 items-end justify-center gap-0.5 rounded-xl bg-[#38D9C7] px-2 pb-2 shadow-[0_5px_14px_rgba(56,217,199,0.2)]">
-              <i className="h-2 w-1 rotate-38 rounded-full bg-white" />
-              <i className="h-4 w-1 rotate-38 rounded-full bg-white" />
-              <i className="h-3 w-1 rotate-38 rounded-full bg-white" />
-            </span>
-            <strong className="text-xl font-extrabold tracking-[-0.04em] text-[#0F172A]">
-              덕길이
-            </strong>
+            <img src={TotalLogo} alt="로고" className="w-30" />
           </button>
 
           <div className="flex items-center gap-2.5">
@@ -164,9 +158,7 @@ export default function Home() {
             <div className="mt-4 flex items-stretch gap-3">
               <article className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-[#DCE9E6] p-4">
                 <div className="min-w-0">
-                  <p className="text-[10px] text-[#64748B]">
-                    오후 9시부터 비
-                  </p>
+                  <p className="text-[10px] text-[#64748B]">오후 9시부터 비</p>
                   <strong className="mt-1 block text-xs text-[#0F172A]">
                     작은 우산 챙기기
                   </strong>
@@ -179,9 +171,7 @@ export default function Home() {
               </article>
               <article className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-[#DCE9E6] p-4">
                 <div className="min-w-0">
-                  <p className="text-[10px] text-[#64748B]">
-                    굿즈 수령 대기
-                  </p>
+                  <p className="text-[10px] text-[#64748B]">굿즈 수령 대기</p>
                   <strong className="mt-1 block text-xs text-[#0F172A]">
                     약 20분 예상
                   </strong>

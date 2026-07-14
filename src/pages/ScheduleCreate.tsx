@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
+import LoadingScreen from "@/components/layout/LoadingScreen";
 import MobileFrame from "@/components/layout/MobileFrame";
+import Train from "../assets/Train.svg";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Camera,
@@ -15,7 +17,6 @@ import {
   ShoppingBag,
   Sparkles,
   Trash2,
-  TrainFront,
   Utensils,
 } from "lucide-react";
 
@@ -172,6 +173,17 @@ export default function ScheduleCreate() {
   );
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isGeneratingSchedule, setIsGeneratingSchedule] = useState(false);
+  const generationTimerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (generationTimerRef.current !== null) {
+        window.clearTimeout(generationTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const togglePreference = (id: string) => {
     setSelectedPreferences((currentPreferences) =>
@@ -227,10 +239,15 @@ export default function ScheduleCreate() {
   };
 
   const createSchedulePreview = () => {
-    setDraftSchedule(generatedSchedule.map((item) => ({ ...item })));
-    setDraftChecklist(generatedChecklist.map((item) => ({ ...item })));
-    setIsEditingSchedule(false);
-    setViewMode("preview");
+    setIsGeneratingSchedule(true);
+    generationTimerRef.current = window.setTimeout(() => {
+      setDraftSchedule(generatedSchedule.map((item) => ({ ...item })));
+      setDraftChecklist(generatedChecklist.map((item) => ({ ...item })));
+      setIsEditingSchedule(false);
+      setViewMode("preview");
+      setIsGeneratingSchedule(false);
+      generationTimerRef.current = null;
+    }, 1200);
   };
 
   const updateDraftItem = (
@@ -279,6 +296,15 @@ export default function ScheduleCreate() {
     setIsDeleteDialogOpen(false);
     setViewMode("landing");
   };
+
+  if (isGeneratingSchedule) {
+    return (
+      <LoadingScreen
+        message="맞춤 일정을 만들고 있어요"
+        description="선택한 취향과 이동 시간을 반영하고 있어요."
+      />
+    );
+  }
 
   if (viewMode === "landing") {
     return (
@@ -389,7 +415,7 @@ export default function ScheduleCreate() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-extrabold text-[#0F172A]">
-                    AI 체크리스트
+                    체크리스트
                   </h3>
                 </div>
                 <span className="text-[10px] font-bold text-[#64748B]">
@@ -488,7 +514,7 @@ export default function ScheduleCreate() {
               className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-[#F5FBFA] p-4 text-left"
             >
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-[#22B8AD]">
-                <TrainFront size={18} />
+                <img src={Train} alt="" />
               </span>
               <span className="flex-1">
                 <small className="text-[9px] text-[#22B8AD]">
@@ -680,7 +706,7 @@ export default function ScheduleCreate() {
                   <div className="flex items-center gap-2">
                     <Check size={15} className="text-[#22B8AD]" />
                     <h3 className="text-sm font-extrabold text-[#0F172A]">
-                      함께 생성된 AI 체크리스트
+                      함께 생성된 체크리스트
                     </h3>
                   </div>
                   <span className="rounded-md bg-[#E6FAF7] px-2 py-1 text-[9px] font-extrabold text-[#138A80]">

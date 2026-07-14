@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { client } from "@/lib/api";
-import LoadingScreen from "@/components/layout/LoadingScreen";
 import {
   loadUserProfile,
   normalizeAuthenticatedUser,
@@ -56,9 +55,9 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <LoadingScreen
-      message={statusMessage}
-      description="안전하게 로그인 정보를 불러오고 있어요."
-    />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#DCE9E6] border-t-[#22B8AD]" />
+      <p className="mt-4 text-sm font-semibold text-[#64748B]">{statusMessage}</p>
+    </div>
   );
 }

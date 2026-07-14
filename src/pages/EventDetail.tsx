@@ -137,7 +137,7 @@ export default function EventDetail() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-[#0F172A]">
-                  AI 체크리스트
+                  체크리스트
                 </h3>
               </div>
               <span className="text-[10px] text-[#64748B]">
