@@ -3,13 +3,17 @@ import { useNavigate } from "react-router-dom";
 import MobileFrame from "@/components/layout/MobileFrame";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import {
-  fetchGoogleProfilePreview,
-  requestGoogleAuthorizationCode,
-} from "@/lib/googleAuth";
-import { loginWithGoogle, saveAuthTokens } from "@/lib/auth";
+import { requestGoogleAuthorizationCode } from "@/lib/googleAuth";
+import { ApiError, loginWithGoogle, saveAuthTokens } from "@/lib/auth";
 import { normalizeAuthenticatedUser, saveAuthenticatedUser, saveUserProfile } from "@/lib/profile";
-import Logo from "../assets/Logo.svg";
+import TotalLogo from "../assets/TotalLogo.svg";
+
+const isUnregisteredUserError = (error: unknown) =>
+  error instanceof ApiError &&
+  (error.status === 404 ||
+    error.code === "USER_NOT_FOUND" ||
+    error.code === "USER_NOT_REGISTERED" ||
+    error.code === "UNREGISTERED_USER");
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,9 +35,13 @@ export default function Login() {
       });
       navigate("/home", { replace: true });
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "로그인에 실패했어요.",
-      );
+      if (isUnregisteredUserError(error)) {
+        toast.error("가입되지 않은 계정이에요. 회원가입으로 진행해 주세요.");
+      } else {
+        toast.error(
+          error instanceof Error ? error.message : "구글 인증에 실패했어요.",
+        );
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -43,16 +51,14 @@ export default function Login() {
     if (isProcessing) return;
     setIsProcessing(true);
     try {
-      const [authorizationCode, googleProfile] = await Promise.all([
-        requestGoogleAuthorizationCode(),
-        fetchGoogleProfilePreview(),
-      ]);
-      navigate("/profile/setup", {
-        state: { authorizationCode, googleProfile },
-      });
+      // Keep this code and send it to the signup API after the user fills in
+      // their profile. It is single-use, so requesting another code later
+      // would cause needless Google popups and can invalidate this flow.
+      const authorizationCode = await requestGoogleAuthorizationCode();
+      navigate("/profile/setup", { state: { authorizationCode } });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "회원가입에 실패했어요.",
+        error instanceof Error ? error.message : "구글 인증에 실패했어요.",
       );
     } finally {
       setIsProcessing(false);
@@ -61,23 +67,20 @@ export default function Login() {
 
   return (
     <MobileFrame>
-      <div className="flex flex-col h-screen px-6 pt-20 pb-8">
+      <div className="flex flex-col h-dvh px-6 pt-20 pb-8">
         {/* Logo and branding */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          {/* <div className="w-20 h-20 rounded-2xl bg-[#22B8AD] flex items-center justify-center mb-6 shadow-lg shadow-teal-200 overflow-hidden"> */}
           <img
-            src={Logo}
-            alt="덕길이 로고"
-            className="w-20 h-20 object-contain flex items-center justify-center mb-6  overflow-hidden"
+            src={TotalLogo}
+            alt="덕길이"
+            className="w-52 h-auto object-contain mb-6"
           />
-          {/* </div> */}
-          <h1 className="text-3xl font-bold text-[#0F172A] mb-2">덕길이</h1>
           <p className="text-[#64748B] text-sm text-center leading-relaxed">
             AI가 추천하는 최적의 덕질 일정
           </p>
         </div>
 
-        {/* Login buttons */}
+        {/* Login button */}
         <div className="space-y-3 mb-8">
           <Button
             onClick={handleGoogleLogin}
@@ -102,9 +105,8 @@ export default function Login() {
                 fill="#EA4335"
               />
             </svg>
-            Google로 로그인
+            {isProcessing ? "처리 중..." : "Google로 로그인"}
           </Button>
-
           <div className="flex items-center justify-center gap-1 pt-1 text-sm">
             <span className="text-[#64748B]">덕길이가 처음이신가요?</span>
             <button

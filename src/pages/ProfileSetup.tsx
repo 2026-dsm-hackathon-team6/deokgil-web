@@ -8,16 +8,10 @@ import {
   saveAuthenticatedUser,
   saveUserProfile,
 } from "@/lib/profile";
-import { saveAuthTokens, signupWithGoogle } from "@/lib/auth";
-import { Camera, Check, UserRound } from "lucide-react";
+import { ApiError, saveAuthTokens, signupWithGoogle } from "@/lib/auth";
+import { ArrowLeft, Camera, Check, UserRound } from "lucide-react";
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
-
-type GoogleProfilePreview = {
-  name: string;
-  email: string;
-  image: string;
-};
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -25,19 +19,31 @@ export default function ProfileSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authenticatedUser = loadAuthenticatedUser();
   const savedProfile = loadUserProfile();
-  const { googleProfile, authorizationCode } = (location.state as {
-    googleProfile?: GoogleProfilePreview;
-    authorizationCode?: string;
-  } | null) ?? {};
+  const { authorizationCode } =
+    (location.state as { authorizationCode?: string } | null) ?? {};
   const isSignupFlow = Boolean(authorizationCode);
+  const pageTitle = isSignupFlow ? (
+    <>
+      덕질을 함께할
+      <br />
+      프로필을 만들어 주세요.
+    </>
+  ) : (
+    <>
+      나를 보여줄
+      <br />
+      프로필을 수정해 주세요.
+    </>
+  );
   const [nickname, setNickname] = useState(
-    savedProfile?.nickname || authenticatedUser?.name || googleProfile?.name || "",
+    savedProfile?.nickname || authenticatedUser?.name || "",
   );
   const [profileImage, setProfileImage] = useState(
-    savedProfile?.image || authenticatedUser?.image || googleProfile?.image || "",
+    savedProfile?.image || authenticatedUser?.image || "",
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -57,6 +63,7 @@ export default function ProfileSetup() {
     reader.onload = () => {
       if (typeof reader.result === "string") {
         setProfileImage(reader.result);
+        setImageLoadFailed(false);
         setErrorMessage("");
       }
     };
@@ -91,13 +98,18 @@ export default function ProfileSetup() {
         saveUserProfile({
           nickname: user.name || trimmedNickname,
           image: user.image || profileImage,
-          email: user.email || googleProfile?.email || "",
+          email: user.email,
         });
         navigate("/home", { replace: true });
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "회원가입에 실패했어요.",
-        );
+        setErrorMessage(error instanceof ApiError &&
+          (error.code === "USER_ALREADY_EXISTS" ||
+            error.code === "ALREADY_REGISTERED" ||
+            error.status === 409)
+          ? "이미 가입된 계정이에요. 로그인 화면에서 Google로 로그인해 주세요."
+          : error instanceof Error
+            ? error.message
+            : "회원가입에 실패했어요.");
       } finally {
         setIsSubmitting(false);
       }
@@ -107,101 +119,80 @@ export default function ProfileSetup() {
     saveUserProfile({
       nickname: trimmedNickname,
       image: profileImage,
-      email: authenticatedUser?.email || googleProfile?.email || "",
+      email: authenticatedUser?.email || "",
     });
     navigate("/home", { replace: true });
   };
 
   return (
     <MobileFrame>
-      <form onSubmit={handleSubmit} className="flex h-screen flex-col bg-white">
-        <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-28 pt-14">
+      <form onSubmit={handleSubmit} className="flex h-dvh flex-col bg-white">
+        <header className="flex h-16 shrink-0 items-center px-4 pt-2">
+          <button
+            type="button"
+            aria-label="이전 화면으로"
+            onClick={() => {
+              if (isSignupFlow) {
+                navigate("/login", { replace: true });
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="grid h-10 w-10 place-items-center rounded-full text-[#0F172A] transition-colors hover:bg-[#F5FBFA]"
+          >
+            <ArrowLeft size={21} />
+          </button>
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5">
           <p className="text-[10px] font-extrabold tracking-[0.17em] text-[#22B8AD]">
-            PROFILE SETUP
+            {isSignupFlow ? "PROFILE SETUP" : "EDIT PROFILE"}
           </p>
           <h1 className="mt-3 text-[30px] font-medium leading-[1.35] tracking-[-0.04em] text-[#0F172A]">
-            덕질을 함께할
-            <br />
-            프로필을 만들어 주세요.
+            {pageTitle}
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-[#64748B]">
-            덕길이에서 사용할 닉네임과 프로필 이미지를 설정해요.
+            {isSignupFlow
+              ? "덕길이에서 사용할 닉네임과 프로필 이미지를 설정해요."
+              : "변경한 정보는 저장 후 바로 프로필에 반영돼요."}
           </p>
 
-          {googleProfile && (
-            <div className="mt-6 flex items-center gap-3 rounded-2xl border border-[#DCE9E6] bg-[#F5FBFA] px-4 py-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white shadow-sm">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.07 5.07 0 0 1-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853" />
-                  <path d="M5.84 14.09A6.4 6.4 0 0 1 5.49 12c0-.73.13-1.43.35-2.09V7.07H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.93l3.66-2.84Z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z" fill="#EA4335" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-extrabold text-[#0F172A]">
-                  Google 계정 정보를 가져왔어요
-                </p>
-                <p className="mt-0.5 truncate text-[11px] text-[#64748B]">
-                  {googleProfile.email}
-                </p>
-              </div>
-              <span className="rounded-full bg-[#DDF8F4] px-2.5 py-1 text-[10px] font-extrabold text-[#138A80]">
-                연결 완료
-              </span>
-            </div>
-          )}
-
-          <section className={`${googleProfile ? "mt-8" : "mt-10"} flex flex-col items-center`}>
-            {isSignupFlow ? (
-              <div className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]">
-                {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt="Google 프로필"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <UserRound size={40} strokeWidth={1.5} />
-                )}
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  aria-label="프로필 이미지 선택"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
-                >
-                  {profileImage ? (
-                    <img
-                      src={profileImage}
-                      alt="선택한 프로필"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <UserRound size={40} strokeWidth={1.5} />
-                  )}
-                  <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#38D9C7] text-[#063F3A]">
-                    <Camera size={16} />
-                  </span>
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
+          <section className="mt-11 flex flex-col items-center">
+            <button
+              type="button"
+              aria-label="프로필 이미지 선택"
+              onClick={() => fileInputRef.current?.click()}
+              className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#7CEEDF] bg-[#F5FBFA] text-[#22B8AD]"
+            >
+              {profileImage && !imageLoadFailed ? (
+                <img
+                  src={profileImage}
+                  alt="선택한 프로필"
+                  className="h-full w-full object-cover"
+                  onError={() => setImageLoadFailed(true)}
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-3 text-xs font-extrabold text-[#22B8AD]"
-                >
-                  이미지 선택
-                </button>
-              </>
-            )}
+              ) : (
+                <UserRound size={40} strokeWidth={1.5} />
+              )}
+              <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-[#38D9C7] text-[#063F3A]">
+                <Camera size={16} />
+              </span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-3 text-xs font-extrabold text-[#22B8AD]"
+            >
+              {profileImage ? "프로필 사진 변경" : "프로필 사진 선택"}
+            </button>
+            <p className="mt-1.5 text-[11px] text-[#94A3B8]">JPG, PNG · 최대 2MB</p>
           </section>
 
           <label className="mt-10 block">
@@ -229,23 +220,29 @@ export default function ProfileSetup() {
             </p>
           )}
 
-          <div className="mt-8 flex items-start gap-2 rounded-xl bg-[#E6FAF7] p-4">
-            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#22B8AD] text-white">
-              <Check size={12} />
-            </span>
-            <p className="text-[11px] leading-relaxed text-[#64748B]">
-              닉네임과 이미지는 마이페이지에서 언제든지 변경할 수 있어요.
-            </p>
-          </div>
+          {isSignupFlow && (
+            <div className="mt-8 flex items-start gap-2 rounded-xl bg-[#E6FAF7] p-4">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#22B8AD] text-white">
+                <Check size={12} />
+              </span>
+              <p className="text-[11px] leading-relaxed text-[#64748B]">
+                닉네임과 이미지는 마이페이지에서 언제든지 변경할 수 있어요.
+              </p>
+            </div>
+          )}
         </main>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-white px-6 pb-5 pt-3 safe-bottom">
+        <div className="shrink-0 border-t border-[#EDF4F2] bg-white px-6 pb-8 pt-3 safe-bottom">
           <button
             type="submit"
             disabled={isSubmitting}
             className="h-14 w-full rounded-2xl bg-[#38D9C7] text-sm font-extrabold text-[#063F3A] disabled:opacity-60"
           >
-            {isSubmitting ? "처리 중..." : "프로필 설정 완료"}
+            {isSubmitting
+              ? "처리 중..."
+              : isSignupFlow
+                ? "프로필 설정 완료"
+                : "변경사항 저장"}
           </button>
         </div>
       </form>
