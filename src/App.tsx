@@ -3,7 +3,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LoadingScreen from "@/components/layout/LoadingScreen";
 
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
@@ -25,9 +24,7 @@ const ReturnPlanner = lazy(() => import("./pages/ReturnPlanner"));
 const queryClient = new QueryClient();
 
 const AppRoutes = () => (
-  <Suspense
-    fallback={<LoadingScreen />}
-  >
+  <Suspense fallback={null}>
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />

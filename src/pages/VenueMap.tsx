@@ -252,7 +252,7 @@ export default function VenueMap() {
 
         <section
           style={{ height: sheetHeight }}
-          className={`absolute bottom-16 left-0 right-0 z-20 flex flex-col overflow-hidden rounded-t-[28px] bg-white px-5 pb-5 pt-2 shadow-[0_-8px_28px_rgba(15,23,42,0.1)] ${
+          className={`venue-map-sheet absolute bottom-16 left-0 right-0 z-20 flex flex-col overflow-hidden rounded-t-[28px] bg-white px-5 pb-5 pt-2 shadow-[0_-8px_28px_rgba(15,23,42,0.1)] ${
             isDraggingSheet ? "" : "transition-[height] duration-300 ease-out"
           }`}
         >
