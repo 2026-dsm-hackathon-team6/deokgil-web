@@ -1,137 +1,76 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import MobileFrame from "@/components/layout/MobileFrame";
-import { Button } from "@/components/ui/button";
-import { ChevronRight, Calendar, Sparkles, Navigation } from "lucide-react";
+import {
+  BriefingPreview,
+  RegisterPreview,
+  ReturnPreview,
+  SchedulePreview,
+} from "@/components/onboarding/PhonePreviews";
+import Logo from "@/assets/Logo.svg";
+import TotalLogo from "@/assets/TotalLogo.svg";
 
-const onboardingSlides = [
-  {
-    icon: Calendar,
-    title: "이벤트를 등록하세요",
-    description:
-      "콘서트, 팝업스토어, 팬미팅 등\n링크만 붙여넣으면 AI가 자동으로\n행사 정보를 추출해요",
-    color: "bg-teal-50",
-    iconColor: "text-[#22B8AD]",
-    image:
-      "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacozacaiyq/onboarding-schedule-planning.png",
-  },
-  {
-    icon: Sparkles,
-    title: "AI가 일정을 만들어요",
-    description:
-      "출발 시간, 이동 경로, 날씨까지\n고려한 최적의 일정을\nAI가 자동으로 생성해요",
-    color: "bg-teal-50",
-    iconColor: "text-[#38D9C7]",
-    image:
-      "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpfycaiya/onboarding-ai-assistant.png",
-  },
-  {
-    icon: Navigation,
-    title: "귀가까지 함께해요",
-    description:
-      "공연 종료 후 최적 귀가 경로,\n막차 시간, 예상 도착 시간까지\n한 번에 안내해요",
-    color: "bg-teal-50",
-    iconColor: "text-[#22B8AD]",
-    image:
-      "https://mgx-backend-cdn.metadl.com/generate/images/1422594/2026-07-13/smacpuqcaiza/onboarding-way-home.png",
-  },
-];
+type StepCardProps = {
+  step: string;
+  eyebrow: string;
+  title: ReactNode;
+  description: string;
+  background: string;
+  height: string;
+  children: ReactNode;
+};
+
+function StepCard({ step, eyebrow, title, description, background, height, children }: StepCardProps) {
+  return (
+    <section className={`relative w-full overflow-hidden px-7 pt-[66px] ${background} ${height}`}>
+      <p className="text-[12px] font-black tracking-[0.19em] text-[#687A84]">STEP {step}</p>
+      <p className="mt-5 text-[11px] font-bold text-[#75868D]">{eyebrow}</p>
+      <h2 className="mt-3 text-[35px] font-black leading-[1.04] tracking-[-0.055em] text-[#0A1830]">{title}</h2>
+      <p className="mt-7 max-w-[285px] text-[12px] font-medium leading-[1.8] text-[#6B7C83]">{description}</p>
+      <div className="mt-[58px]">{children}</div>
+    </section>
+  );
+}
 
 export default function Index() {
-  const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
 
-  const handleNext = () => {
-    if (currentSlide < onboardingSlides.length - 1) {
-      setCurrentSlide(currentSlide + 1);
-    } else {
-      navigate("/login");
-    }
-  };
-
-  const handleSkip = () => {
-    navigate("/login");
-  };
-
-  const slide = onboardingSlides[currentSlide];
-
   return (
-    <MobileFrame>
-      <div className="flex flex-col h-screen px-6 pt-12 pb-8">
-        {/* Skip button */}
-        <div className="flex justify-end">
-          <button
-            onClick={handleSkip}
-            className="text-[#64748B] text-sm font-medium cursor-pointer transition-colors"
-          >
-            건너뛰기
-          </button>
-        </div>
-
-        {/* Logo area */}
-        <div className="flex items-center gap-2 mt-8 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-[#22B8AD] flex items-center justify-center">
-            <Sparkles size={18} className="text-white" />
+    <MobileFrame className="onboarding-landing-frame">
+      <main className="bg-white text-[#0A1830]">
+        <section className="onboarding-hero relative h-[720px] overflow-hidden">
+          <img src={TotalLogo} alt="덕길이" className="absolute left-4 top-6 h-auto w-25 object-contain" />
+          <div className="absolute left-1/2 top-[111px] flex h-[496px] w-[496px] -translate-x-1/2 flex-col items-center justify-center rounded-full border border-[#B9EEE8] bg-white text-center">
+            <p className="mb-4 text-[21px] font-black tracking-[-0.045em] text-[#0A1830]">덕질을 <span className="text-[#22C7B5]">쉬운 길로</span></p>
+            <img src={TotalLogo} alt="덕길이" className="h-auto w-[228px] object-contain" />
+            <p className="mt-[58px] text-[16px] font-medium tracking-[-0.025em] text-[#697893]">A to Z 덕질 플랜, 링크 하나면 끝</p>
           </div>
-          <span className="text-lg font-bold text-[#0F172A]">덕길이</span>
+        </section>
+
+        <section className="flex h-[400px] flex-col items-center justify-center px-8 text-center">
+          <p className="text-[8px] font-black tracking-[0.28em] text-[#29C7B7]">HOW IT WORKS</p>
+          <h1 className="mt-10 text-[29px] font-black leading-[1.24] tracking-[-0.045em]">복잡한 덕질 동선,<br />딱 4단계면 충분해요.</h1>
+          <p className="mt-7 text-[10px] leading-relaxed text-[#9AA8AE]">행사 등록부터 일정과 귀가까지 필요한 준비를 차근차근 도와드려요.</p>
+        </section>
+
+        <div>
+          <StepCard step="01" eyebrow="행사 등록" title={<>링크 하나면,<br />준비 끝.</>} description="공연 링크 하나만 넣으면 필요한 행사 정보를 빠르게 정리해요." background="bg-[#9DECDD]" height="h-[1030px]"><RegisterPreview /></StepCard>
+          <StepCard step="02" eyebrow="내 일정 생성" title={<>내 취향대로<br />딱 맞는 하루.</>} description="원하는 활동과 이동 시간을 반영해 나에게 맞는 하루 동선을 만들어요." background="bg-[#E4F7F3]" height="h-[1070px]"><SchedulePreview /></StepCard>
+          <StepCard step="03" eyebrow="오늘의 브리핑" title={<>오늘 필요한 건<br />한 화면에.</>} description="날씨, 교통, 준비물을 행사 당일 한 화면에서 확인해요." background="bg-[#DDF3F8]" height="h-[1050px]"><BriefingPreview /></StepCard>
+          <StepCard step="04" eyebrow="안심 귀가" title={<>마지막 순간까지<br />안심 귀가.</>} description="공연 종료 시간과 막차를 계산해 여유 있는 귀가 경로를 안내해요." background="bg-[#DFE8F1]" height="h-[1144px]"><ReturnPreview /></StepCard>
         </div>
 
-        {/* Illustration area */}
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div
-            className={`w-56 h-56 rounded-full ${slide.color} flex items-center justify-center mb-10 overflow-hidden`}
-          >
-            {slide.image ? (
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="w-44 h-44 object-contain"
-              />
-            ) : (
-              <slide.icon
-                size={80}
-                className={slide.iconColor}
-                strokeWidth={1.2}
-              />
-            )}
-          </div>
-
-          {/* Text content */}
-          <h1 className="text-2xl font-bold text-[#0F172A] text-center mb-3">
-            {slide.title}
-          </h1>
-          <p className="text-[#64748B] text-center text-sm leading-relaxed whitespace-pre-line">
-            {slide.description}
-          </p>
-        </div>
-
-        {/* Pagination dots */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {onboardingSlides.map((_, index) => (
-            <div
-              key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                index === currentSlide ? "w-6 bg-[#22B8AD]" : "w-2 bg-[#DCE9E6]"
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* CTA Button */}
-        <Button
-          onClick={handleNext}
-          className="w-full h-14 rounded-2xl bg-[#22B8AD] text-white text-base font-semibold shadow-sm cursor-pointer"
-        >
-          {currentSlide < onboardingSlides.length - 1 ? (
-            <>
-              다음
-              <ChevronRight size={18} className="ml-1" />
-            </>
-          ) : (
-            "시작하기"
-          )}
-        </Button>
-      </div>
+        <footer className="relative flex h-[760px] flex-col items-center justify-center overflow-hidden bg-[#071126] px-8 text-center text-white">
+          <div className="absolute -left-24 top-4 h-[340px] w-[340px] rounded-full border border-white/[0.035]" />
+          <div className="absolute -right-28 bottom-[-110px] h-[380px] w-[380px] rounded-full border border-white/[0.035]" />
+          <img src={Logo} alt="" className="relative h-[66px] w-[66px]" />
+          <p className="relative mt-7 text-[9px] font-black tracking-[0.22em] text-[#3EDAC8]">READY FOR YOUR DAY?</p>
+          <h2 className="relative mt-7 text-[35px] font-black leading-[1.2] tracking-[-0.04em]">다음 덕질은,<br />덕길이와 함께.</h2>
+          <p className="relative mt-7 text-[12px] leading-[1.8] text-[#748097]">설레는 마음은 그대로 두고,<br />복잡한 준비는 덕길이와 함께해요.</p>
+          <button type="button" onClick={() => navigate("/login")} className="relative mt-10 flex h-[58px] w-[210px] items-center justify-center gap-2 rounded-full bg-[#36D5C3] text-[13px] font-extrabold text-[#062020] shadow-[0_12px_30px_rgba(54,213,195,0.2)] transition-transform active:scale-[0.98]">덕길이 시작하기 <ChevronRight size={15} strokeWidth={2.6} /></button>
+        </footer>
+      </main>
     </MobileFrame>
   );
 }
