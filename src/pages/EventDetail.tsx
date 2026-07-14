@@ -136,9 +136,7 @@ export default function EventDetail() {
           <Card className="p-4 border border-[#DCE9E6]">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-[#0F172A]">
-                  체크리스트
-                </h3>
+                <h3 className="text-sm font-bold text-[#0F172A]">체크리스트</h3>
               </div>
               <span className="text-[10px] text-[#64748B]">
                 {completedItemCount}/{checklistItems.length} 완료
@@ -245,12 +243,9 @@ export default function EventDetail() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="delete-event-title"
-              className="w-full rounded-3xl bg-white p-5 shadow-xl"
+              className="w-full rounded-3xl bg-[#FFFFFF] p-5"
             >
               <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-[#DCE9E6]" />
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#FEF2F2] text-[#EF4444]">
-                <Trash2 size={20} />
-              </span>
               <h2
                 id="delete-event-title"
                 className="mt-4 text-lg font-extrabold text-[#0F172A]"
