@@ -5,7 +5,7 @@ const REFRESH_TOKEN_KEY = "deokgil-refresh-token";
 
 export type AuthTokens = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 };
 
 export type AuthUser = {
@@ -17,13 +17,18 @@ export type AuthUser = {
 
 export type AuthResponse = {
   accessToken: string;
-  refreshToken: string;
   user: AuthUser;
 };
 
 export function saveAuthTokens(tokens: AuthTokens) {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  // The server delivers the refresh token as an HttpOnly cookie. Keep this
+  // fallback for older environments, but never write an absent token.
+  if (tokens.refreshToken) {
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  } else {
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
 }
 
 export function getAccessToken(): string | null {
@@ -53,13 +58,16 @@ const FALLBACK_MESSAGE_BY_STATUS: Record<number, string> = {
   500: "서버에서 오류가 발생했습니다.",
 };
 
-async function request<T>(
+export async function apiRequest<T>(
   path: string,
-  options: { method: "POST" | "DELETE"; body?: unknown; withAuth?: boolean },
+  options: {
+    method: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+    withAuth?: boolean;
+  },
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.withAuth) {
     const accessToken = getAccessToken();
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -77,8 +85,9 @@ async function request<T>(
     response = await fetch(`${getAPIBaseURL()}${path}`, {
       method: options.method,
       headers,
-      body: JSON.stringify(options.body ?? {}),
+      ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
       signal: timeoutController.signal,
+      credentials: "include",
     });
   } catch (error) {
     const message =
@@ -116,9 +125,9 @@ async function request<T>(
 export function signupWithGoogle(params: {
   authorizationCode: string;
   nickname: string;
-  profileImage: string;
+  profileImage?: string;
 }): Promise<AuthResponse> {
-  return request<AuthResponse>("/api/v1/auth/signup/google", {
+  return apiRequest<AuthResponse>("/api/v1/auth/signup/google", {
     method: "POST",
     body: params,
   });
@@ -127,22 +136,65 @@ export function signupWithGoogle(params: {
 export function loginWithGoogle(
   authorizationCode: string,
 ): Promise<AuthResponse> {
-  return request<AuthResponse>("/api/v1/auth/login/google", {
+  return apiRequest<AuthResponse>("/api/v1/auth/login/google", {
     method: "POST",
     body: { authorizationCode },
   });
 }
 
 export function logoutRequest(): Promise<{ message: string }> {
-  return request<{ message: string }>("/api/v1/auth/logout", {
+  return apiRequest<{ message: string }>("/api/v1/auth/logout", {
     method: "POST",
     withAuth: true,
   });
 }
 
+export const getCsrfToken = () =>
+  apiRequest<void>("/api/v1/auth/csrf-token", { method: "GET" });
+
+export const reissueAuthTokens = () =>
+  apiRequest<AuthResponse>("/api/v1/auth/reissue", { method: "POST" });
+
 export function deleteAccountRequest(): Promise<{ message: string }> {
-  return request<{ message: string }>("/api/v1/users/me", {
+  return apiRequest<{ message: string }>("/api/v1/users/me", {
     method: "DELETE",
+    withAuth: true,
+  });
+}
+
+export type ProfileImageUpload = {
+  uploadUrl: string;
+  imageUrl: string;
+};
+
+export async function uploadProfileImage(file: File): Promise<string> {
+  const upload = await apiRequest<ProfileImageUpload>(
+    "/api/v1/users/me/profile-image/presigned-url",
+    {
+      method: "POST",
+      body: { contentType: file.type },
+      withAuth: true,
+    },
+  );
+
+  const response = await fetch(upload.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!response.ok) {
+    throw new ApiError("프로필 이미지를 업로드하지 못했습니다.", response.status);
+  }
+  return upload.imageUrl;
+}
+
+export function updateProfile(params: {
+  nickname: string;
+  profileImage?: string;
+}): Promise<AuthUser> {
+  return apiRequest<AuthUser>("/api/v1/users/me", {
+    method: "PATCH",
+    body: params,
     withAuth: true,
   });
 }
