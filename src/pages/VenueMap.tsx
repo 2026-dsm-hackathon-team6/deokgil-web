@@ -1,11 +1,16 @@
 import {
+  type ComponentType,
   type PointerEvent as ReactPointerEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { useLocation } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileFrame from "@/components/layout/MobileFrame";
+import { fetchNearbyPlaces, type NearbyCategory, type NearbyPlace } from "@/lib/nearbyPlaces";
+import { geocodeAddress } from "@/lib/geocode";
 import Lock from "../assets/Lock.svg";
 import ConvenienceStore from "../assets/Convenience-store.svg";
 import Cafe from "../assets/Cafe.svg";
@@ -15,7 +20,6 @@ import {
   LocateFixed,
   Navigation,
   Search,
-  Star,
   X,
 } from "lucide-react";
 
@@ -77,6 +81,20 @@ const categories = [
 
 type Category = (typeof categories)[number]["id"];
 
+const CATEGORY_ICON: Record<NearbyCategory, ComponentType<{ size?: number }>> = {
+  locker: LockIcon,
+  store: ConvenienceStoreIcon,
+  cafe: CafeIcon,
+  restroom: RestroomIcon,
+};
+
+const CATEGORY_TONE: Record<NearbyCategory, string> = {
+  locker: "bg-[#f7fcfc] text-[#0f766e]",
+  store: "bg-[#f0fdf4] text-[#16a34a]",
+  cafe: "bg-[#fff7ed] text-[#ea580c]",
+  restroom: "bg-[#f0fdfa] text-[#22b8ad]",
+};
+
 const SHEET_COLLAPSED_HEIGHT = 112;
 const SHEET_DEFAULT_HEIGHT = 210;
 const SHEET_EXPANDED_HEIGHT = 520;
@@ -84,56 +102,20 @@ const SHEET_EXPANDED_HEIGHT = 520;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
-const facilities = [
-  {
-    id: 1,
-    name: "올림픽공원역 3번 출구",
-    category: "locker" as Category,
-    categoryLabel: "코인락커",
-    distance: "도보 4분",
-    status: "현재 이용 가능",
-    icon: LockIcon,
-    markerClass: "left-[18%] top-[29%]",
-    tone: "bg-[#f7fcfc] text-[#0f766e]",
-  },
-  {
-    id: 2,
-    name: "GS25 올림픽공원점",
-    category: "store" as Category,
-    categoryLabel: "편의점",
-    distance: "도보 3분",
-    status: "24시간 영업",
-    icon: ConvenienceStoreIcon,
-    markerClass: "right-[14%] top-[21%]",
-    tone: "bg-[#f0fdf4] text-[#16a34a]",
-  },
-  {
-    id: 3,
-    name: "투썸플레이스 올림픽공원점",
-    category: "cafe" as Category,
-    categoryLabel: "카페",
-    distance: "도보 5분",
-    status: "현재 영업 중",
-    icon: CafeIcon,
-    markerClass: "right-[12%] top-[59%]",
-    tone: "bg-[#fff7ed] text-[#ea580c]",
-  },
-  {
-    id: 4,
-    name: "KSPO DOME 1층 화장실",
-    category: "restroom" as Category,
-    categoryLabel: "화장실",
-    distance: "도보 1분",
-    status: "이용 가능",
-    icon: RestroomIcon,
-    markerClass: "left-[10%] top-[64%]",
-    tone: "bg-[#f0fdfa] text-[#22b8ad]",
-  },
-];
-
 export default function VenueMap() {
+  const location = useLocation();
+  const venueState = location.state as { placeName?: string; address?: string } | null;
+  const initialQuery = venueState?.address || venueState?.placeName || "";
+
   const [activeCategory, setActiveCategory] = useState<Category>("all");
-  const [query, setQuery] = useState("KSPO DOME 주변");
+  const [query, setQuery] = useState(initialQuery);
+  const [currentPosition, setCurrentPosition] = useState<{ lat: number; lon: number } | null>(null);
+  const [searchCenter, setSearchCenter] = useState<{ lat: number; lon: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [isLoadingNearby, setIsLoadingNearby] = useState(true);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [sheetHeight, setSheetHeight] = useState(SHEET_DEFAULT_HEIGHT);
   const [isDraggingSheet, setIsDraggingSheet] = useState(false);
   const dragStartY = useRef(0);
@@ -141,12 +123,100 @@ export default function VenueMap() {
   const currentSheetHeight = useRef(SHEET_DEFAULT_HEIGHT);
   const isDraggingSheetRef = useRef(false);
 
+  // The list re-centers on whichever location was resolved most recently:
+  // a text search (geocoded via Nominatim) takes priority over raw GPS.
+  const nearbyCenter = searchCenter ?? currentPosition;
+
+  const mapEmbedSrc = query
+    ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`
+    : currentPosition
+      ? `https://www.google.com/maps?q=${currentPosition.lat},${currentPosition.lon}&output=embed`
+      : undefined;
+
+  const locateMe = () => {
+    if (!("geolocation" in navigator)) {
+      setLocationError("이 브라우저에서는 위치를 가져올 수 없어요.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSearchCenter(null);
+        setCurrentPosition({ lat: position.coords.latitude, lon: position.coords.longitude });
+        setLocationError(null);
+      },
+      () => setLocationError("위치 권한을 허용해 주세요."),
+      { enableHighAccuracy: false, timeout: 10000 },
+    );
+  };
+
+  const runSearch = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setIsSearching(true);
+    setLocationError(null);
+    geocodeAddress(trimmed)
+      .then((coords) => {
+        if (!coords) {
+          setLocationError("해당 장소를 찾지 못했어요.");
+          return;
+        }
+        setSearchCenter(coords);
+      })
+      .catch(() => setLocationError("장소 검색에 실패했어요."))
+      .finally(() => setIsSearching(false));
+  };
+
+  useEffect(() => {
+    if (initialQuery) {
+      runSearch(initialQuery);
+    } else {
+      locateMe();
+    }
+    // Only run once on mount — search/locate are re-triggered by user action.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isFirstQueryChange = useRef(true);
+
+  // Live search: re-geocode and refresh nearby facilities as the user
+  // types, without waiting for Enter. Debounced so every keystroke doesn't
+  // fire its own network round trip.
+  useEffect(() => {
+    if (isFirstQueryChange.current) {
+      isFirstQueryChange.current = false;
+      return;
+    }
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    setIsSearching(true);
+    const timeoutId = window.setTimeout(() => {
+      runSearch(trimmed);
+    }, 500);
+    return () => window.clearTimeout(timeoutId);
+  }, [query]);
+
+  useEffect(() => {
+    if (!nearbyCenter) return;
+    setIsLoadingNearby(true);
+    setNearbyError(null);
+    const controller = new AbortController();
+    fetchNearbyPlaces(nearbyCenter, 800, controller.signal)
+      .then(setNearbyPlaces)
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setNearbyError("주변 시설을 불러오지 못했어요.");
+      })
+      .finally(() => setIsLoadingNearby(false));
+    return () => controller.abort();
+  }, [nearbyCenter]);
+
   const visibleFacilities = useMemo(
     () =>
       activeCategory === "all"
-        ? facilities
-        : facilities.filter((facility) => facility.category === activeCategory),
-    [activeCategory],
+        ? nearbyPlaces
+        : nearbyPlaces.filter((place) => place.category === activeCategory),
+    [activeCategory, nearbyPlaces],
   );
 
   const getMaximumSheetHeight = () =>
@@ -210,15 +280,23 @@ export default function VenueMap() {
       <div className="relative h-dvh overflow-hidden bg-[#e8efe8]">
         <header className="absolute left-4 right-4 top-4 z-30 flex gap-2.5">
           <div className="flex h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl bg-white px-4 shadow-[0_6px_22px_rgba(15,23,42,0.12)]">
-            <Search
-              size={18}
-              strokeWidth={2}
-              className="shrink-0 text-[#0f172a]"
-            />
+            <button
+              type="button"
+              aria-label="검색"
+              onClick={() => runSearch(query)}
+              disabled={isSearching}
+              className="shrink-0 text-[#0f172a] disabled:opacity-50"
+            >
+              <Search size={18} strokeWidth={2} />
+            </button>
             <input
               aria-label="장소 검색"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") runSearch(query);
+              }}
+              placeholder="장소를 검색해 보세요 (예: YES24 라이브홀)"
               className="min-w-0 flex-1 border-0 bg-transparent text-sm font-bold text-[#0f172a] outline-none"
             />
             {query && (
@@ -242,53 +320,20 @@ export default function VenueMap() {
         </header>
 
         <div className="absolute inset-0 overflow-hidden bg-[#e8efe8]">
-          <span className="absolute -left-22.5 top-[38%] h-4 w-142.5 rotate-18 border-y border-[#dce9e6] bg-white" />
-          <span className="absolute -left-20 top-[58%] h-4 w-135 rotate-[-38deg] border-y border-[#dce9e6] bg-white" />
-          <span className="absolute left-[42%] top-[25%] h-4 w-95 rotate-87 border-y border-[#dce9e6] bg-white" />
-
-          <div className="absolute left-[47%] top-[43%] z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-            <div className="grid h-14 w-14 -rotate-45 place-items-center rounded-[50%_50%_50%_0] bg-[#38d9c7] shadow-[0_7px_20px_rgba(56,217,199,0.35)]">
-              <Star
-                size={20}
-                fill="#334155"
-                className="rotate-45 text-[#334155]"
-              />
-            </div>
-            <strong className="mt-2 rounded-md bg-white px-2 py-1 text-[10px] font-extrabold text-[#334155] shadow-[0_3px_10px_rgba(15,23,42,0.16)]">
-              KSPO DOME
-            </strong>
-          </div>
-
-          {facilities.map((facility) => {
-            const Icon = facility.icon;
-            const isVisible =
-              activeCategory === "all" || activeCategory === facility.category;
-
-            if (!isVisible) return null;
-
-            return (
-              <button
-                key={facility.id}
-                type="button"
-                aria-label={facility.name}
-                onClick={() => setActiveCategory(facility.category)}
-                className={`absolute z-10 flex flex-col items-center ${facility.markerClass}`}
-              >
-                <span
-                  className={`grid h-11 w-11 place-items-center rounded-full border-2 border-white shadow-[0_4px_13px_rgba(15,23,42,0.2)] ${facility.tone}`}
-                >
-                  <Icon size={19} />
-                </span>
-                <small className="mt-1 rounded bg-white px-1.5 py-0.5 text-[9px] font-bold text-[#475569] shadow-sm">
-                  {facility.categoryLabel}
-                </small>
-              </button>
-            );
-          })}
+          {mapEmbedSrc && (
+            <iframe
+              title="행사장 지도"
+              src={mapEmbedSrc}
+              className="h-full w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          )}
 
           <button
             type="button"
             aria-label="현재 위치"
+            onClick={locateMe}
             style={{ bottom: sheetHeight + 80 }}
             className={`absolute right-4 z-20 grid h-13 w-13 place-items-center rounded-full bg-white text-[#22c7bb] shadow-[0_4px_16px_rgba(15,23,42,0.16)] ${
               isDraggingSheet ? "" : "transition-[bottom] duration-300"
@@ -334,36 +379,50 @@ export default function VenueMap() {
           </div>
 
           <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden">
-            {visibleFacilities.map((facility) => {
-              const FacilityIcon = facility.icon;
+            {locationError ? (
+              <p className="py-6 text-center text-xs text-[#64748b]">{locationError}</p>
+            ) : isLoadingNearby ? (
+              <p className="py-6 text-center text-xs text-[#64748b]">주변 시설을 찾는 중이에요...</p>
+            ) : nearbyError ? (
+              <p className="py-6 text-center text-xs text-[#64748b]">{nearbyError}</p>
+            ) : visibleFacilities.length === 0 ? (
+              <p className="py-6 text-center text-xs text-[#64748b]">
+                반경 800m 안에서 시설을 찾지 못했어요.
+              </p>
+            ) : (
+              visibleFacilities.map((facility) => {
+                const FacilityIcon = CATEGORY_ICON[facility.category];
+                const categoryLabel = categories.find((c) => c.id === facility.category)?.label ?? "";
 
-              return (
-                <article key={facility.id} className="flex items-center gap-3">
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl  text-[#22c7bb]">
-                    <FacilityIcon size={30} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold text-[#22c7bb]">
-                      {facility.categoryLabel} · {facility.distance}
-                    </p>
-                    <strong className="mt-1 block truncate text-sm text-[#0f172a]">
-                      {facility.name}
-                    </strong>
-                    <p className="mt-1 flex items-center gap-1 text-[10px] text-[#64748b]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
-                      {facility.status}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-[#7ceedf] px-3 text-[11px] font-bold text-[#22b8ad]"
-                  >
-                    <Navigation size={14} />
-                    길찾기
-                  </button>
-                </article>
-              );
-            })}
+                return (
+                  <article key={facility.id} className="flex items-center gap-3">
+                    <span
+                      className={`grid h-14 w-14 shrink-0 place-items-center rounded-xl ${CATEGORY_TONE[facility.category]}`}
+                    >
+                      <FacilityIcon size={30} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-[#22c7bb]">
+                        {categoryLabel} · 도보 {facility.walkMinutes}분
+                      </p>
+                      <strong className="mt-1 block truncate text-sm text-[#0f172a]">
+                        {facility.name}
+                      </strong>
+                      <p className="mt-1 text-[10px] text-[#64748b]">{facility.distanceMeters}m</p>
+                    </div>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${facility.lat},${facility.lon}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-[#7ceedf] px-3 text-[11px] font-bold text-[#22b8ad]"
+                    >
+                      <Navigation size={14} />
+                      길찾기
+                    </a>
+                  </article>
+                );
+              })
+            )}
           </div>
         </section>
 
