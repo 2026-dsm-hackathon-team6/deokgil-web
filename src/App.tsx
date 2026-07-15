@@ -1,22 +1,57 @@
-import { useQuery } from '@tanstack/react-query'
-import { useAppStore } from './stores/appStore'
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-const fetchGreeting = async () => 'React Query is ready'
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Home = lazy(() => import("./pages/Home"));
+const Events = lazy(() => import("./pages/Events"));
+const EventRegister = lazy(() => import("./pages/EventRegister"));
+const EventDetail = lazy(() => import("./pages/EventDetail"));
+const ScheduleCreate = lazy(() => import("./pages/ScheduleCreate"));
+const VenueMap = lazy(() => import("./pages/VenueMap"));
+const MyPage = lazy(() => import("./pages/MyPage"));
+const PastEvents = lazy(() => import("./pages/PastEvents"));
+const PastEventDetail = lazy(() => import("./pages/PastEventDetail"));
+const ProfileSetup = lazy(() => import("./pages/ProfileSetup"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const ReturnPlanner = lazy(() => import("./pages/ReturnPlanner"));
 
-export default function App() {
-  const { data: greeting } = useQuery({ queryKey: ['greeting'], queryFn: fetchGreeting })
-  const { isDark, toggleTheme } = useAppStore()
+const queryClient = new QueryClient();
 
-  return (
-    <main className={isDark ? 'dark min-h-screen bg-slate-950 text-white' : 'min-h-screen bg-slate-50 text-slate-900'}>
-      <section className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 px-6">
-        <p className="text-sm font-semibold tracking-widest text-indigo-600">DEOKGIL</p>
-        <h1 className="text-4xl font-bold">개발 환경 설정 완료</h1>
-        <p className="text-lg text-slate-500 dark:text-slate-300">{greeting}</p>
-        <button className="w-fit rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white" onClick={toggleTheme}>
-          테마 전환
-        </button>
-      </section>
-    </main>
-  )
-}
+const AppRoutes = () => (
+  <Suspense fallback={null}>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/home" element={<Home />} />
+      <Route path="/events" element={<Events />} />
+      <Route path="/event/register" element={<EventRegister />} />
+      <Route path="/event/:id" element={<EventDetail />} />
+      <Route path="/schedule/create" element={<ScheduleCreate />} />
+      <Route path="/venue-map" element={<VenueMap />} />
+      <Route path="/mypage" element={<MyPage />} />
+      <Route path="/mypage/past-events" element={<PastEvents />} />
+      <Route path="/mypage/past-events/:id" element={<PastEventDetail />} />
+      <Route path="/profile/setup" element={<ProfileSetup />} />
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/return-planner" element={<ReturnPlanner />} />
+    </Routes>
+  </Suspense>
+);
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
+export { AppRoutes };

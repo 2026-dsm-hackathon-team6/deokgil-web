@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Google 프로필 예시 이미지</title>
+  <desc id="desc">민트색 배경의 사용자 프로필 일러스트</desc>
+  <defs>
+    <linearGradient id="background" x1="24" y1="18" x2="138" y2="148" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BDF2EC"/>
+      <stop offset="1" stop-color="#38D9C7"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="80" fill="url(#background)"/>
+  <circle cx="80" cy="62" r="30" fill="#FFF7E8"/>
+  <path d="M40 145c2-31 18-49 40-49s38 18 40 49" fill="#157E75"/>
+  <path d="M51 56c2-23 13-36 30-36 19 0 30 15 29 39-7-2-14-8-19-17-8 10-21 16-40 14Z" fill="#263B46"/>
+  <circle cx="68" cy="63" r="2.5" fill="#263B46"/>
+  <circle cx="92" cy="63" r="2.5" fill="#263B46"/>
+  <path d="M71 77c6 5 12 5 18 0" fill="none" stroke="#E48E7A" stroke-width="3" stroke-linecap="round"/>
+</svg>
