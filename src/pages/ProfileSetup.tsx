@@ -8,7 +8,13 @@ import {
   saveAuthenticatedUser,
   saveUserProfile,
 } from "@/lib/profile";
-import { ApiError, saveAuthTokens, signupWithGoogle } from "@/lib/auth";
+import {
+  ApiError,
+  saveAuthTokens,
+  signupWithGoogle,
+  updateProfile,
+  uploadProfileImage,
+} from "@/lib/auth";
 import { ArrowLeft, Camera, Check, UserRound } from "lucide-react";
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
@@ -41,6 +47,7 @@ export default function ProfileSetup() {
   const [profileImage, setProfileImage] = useState(
     savedProfile?.image || authenticatedUser?.image || "",
   );
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
@@ -59,15 +66,13 @@ export default function ProfileSetup() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setProfileImage(reader.result);
-        setImageLoadFailed(false);
-        setErrorMessage("");
-      }
-    };
-    reader.readAsDataURL(file);
+    if (profileImage.startsWith("blob:")) {
+      URL.revokeObjectURL(profileImage);
+    }
+    setSelectedImageFile(file);
+    setProfileImage(URL.createObjectURL(file));
+    setImageLoadFailed(false);
+    setErrorMessage("");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -90,14 +95,26 @@ export default function ProfileSetup() {
         const response = await signupWithGoogle({
           authorizationCode,
           nickname: trimmedNickname,
-          profileImage,
         });
         saveAuthTokens(response);
-        const user = normalizeAuthenticatedUser(response.user);
+        let user = normalizeAuthenticatedUser(response.user);
+        let image = user.image || profileImage;
+
+        // New users receive their access token first, then upload the chosen
+        // image through the authenticated presigned-upload endpoint.
+        if (selectedImageFile) {
+          image = await uploadProfileImage(selectedImageFile);
+          user = normalizeAuthenticatedUser(
+            await updateProfile({
+              nickname: trimmedNickname,
+              profileImage: image,
+            }),
+          );
+        }
         saveAuthenticatedUser(user);
         saveUserProfile({
           nickname: user.name || trimmedNickname,
-          image: user.image || profileImage,
+          image: user.image || image,
           email: user.email,
         });
         navigate("/home", { replace: true });
@@ -116,12 +133,31 @@ export default function ProfileSetup() {
       return;
     }
 
-    saveUserProfile({
-      nickname: trimmedNickname,
-      image: profileImage,
-      email: authenticatedUser?.email || "",
-    });
-    navigate("/home", { replace: true });
+    setIsSubmitting(true);
+    try {
+      const image = selectedImageFile
+        ? await uploadProfileImage(selectedImageFile)
+        : profileImage;
+      const updatedUser = normalizeAuthenticatedUser(
+        await updateProfile({
+          nickname: trimmedNickname,
+          ...(image ? { profileImage: image } : {}),
+        }),
+      );
+      saveAuthenticatedUser(updatedUser);
+      saveUserProfile({
+        nickname: updatedUser.name || trimmedNickname,
+        image: updatedUser.image || image,
+        email: authenticatedUser?.email || "",
+      });
+      navigate("/mypage", { replace: true });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "프로필을 저장하지 못했어요.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
