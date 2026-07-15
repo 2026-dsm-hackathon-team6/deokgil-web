@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileFrame from "@/components/layout/MobileFrame";
+import { toast } from "@/components/ui/sonner";
+import { createEvent, extractEvent } from "@/lib/eventsApi";
 import { ArrowLeft, Link2 } from "lucide-react";
 
 export default function EventRegister() {
@@ -10,24 +12,75 @@ export default function EventRegister() {
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
   const [venue, setVenue] = useState("");
+  const [address, setAddress] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
-  const handleAnalyze = () => {
+  const canSubmit = Boolean(eventName.trim() && eventDate && eventTime && endTime);
+  const missingName = hasAnalyzed && !eventName.trim();
+  const missingDate = hasAnalyzed && !eventDate;
+  const missingTime = hasAnalyzed && !eventTime;
+  const missingEndTime = hasAnalyzed && !endTime;
+
+  const handleAnalyze = async () => {
     if (!eventLink.trim() || isAnalyzing) return;
+    if (!eventLink.trim().startsWith("https://")) {
+      toast.error("행사 링크는 https://로 시작해야 해요.");
+      return;
+    }
 
     setIsAnalyzing(true);
-    window.setTimeout(() => {
-      setEventName((value) => value || "2026 IU WORLD TOUR");
-      setEventDate((value) => value || "2026-07-18");
-      setEventTime((value) => value || "18:00");
-      setVenue((value) => value || "KSPO DOME");
+    try {
+      const extracted = await extractEvent(eventLink.trim());
+      setEventName(extracted.title || "");
+      setEventDate(extracted.startAt?.slice(0, 10) || "");
+      setEventTime(extracted.startAt?.slice(11, 16) || "");
+      setEndTime(extracted.endAt?.slice(11, 16) || "");
+      setVenue(extracted.placeName || "");
+      setAddress(extracted.address || "");
+      setHasAnalyzed(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "행사 정보를 분석하지 못했어요.");
+    } finally {
       setIsAnalyzing(false);
-    }, 900);
+    }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigate("/events");
+    if (!eventName.trim() || !eventDate || !eventTime || !endTime || isSubmitting) {
+      toast.error("행사 이름, 날짜, 시작 시간, 종료 시간을 입력해 주세요.");
+      return;
+    }
+    if (eventLink.trim() && !eventLink.trim().startsWith("https://")) {
+      toast.error("행사 링크는 https://로 시작해야 해요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const startAt = new Date(`${eventDate}T${eventTime}:00`).toISOString();
+      let endAtDate = new Date(`${eventDate}T${endTime}:00`);
+      if (endAtDate.getTime() <= new Date(startAt).getTime()) {
+        // Concert ends past midnight — roll over to the next day.
+        endAtDate = new Date(endAtDate.getTime() + 24 * 60 * 60 * 1000);
+      }
+      const created = await createEvent({
+        title: eventName.trim(),
+        startAt,
+        endAt: endAtDate.toISOString(),
+        placeName: venue.trim() || undefined,
+        address: address.trim() || undefined,
+        eventUrl: eventLink.trim() || undefined,
+      });
+      navigate(`/event/${created.eventId}`, { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "행사를 등록하지 못했어요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -92,22 +145,35 @@ export default function EventRegister() {
                 value={eventName}
                 onChange={(event) => setEventName(event.target.value)}
                 placeholder="예: 2026 IU WORLD TOUR"
-                className="h-[62px] w-full rounded-2xl border border-[#DCE9E6] bg-[#F5FBFA] px-4 text-sm outline-none placeholder:text-[#94A3B8] focus:border-[#38D9C7]"
+                className={`h-[62px] w-full rounded-2xl border bg-[#F5FBFA] px-4 text-sm outline-none placeholder:text-[#94A3B8] focus:border-[#38D9C7] ${
+                  missingName ? "border-[#EF4444]" : "border-[#DCE9E6]"
+                }`}
               />
+              {missingName && (
+                <p className="mt-1.5 text-[11px] text-[#EF4444]">
+                  AI가 행사 이름을 찾지 못했어요. 직접 입력해 주세요.
+                </p>
+              )}
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-xs font-extrabold text-[#0F172A]">
+                날짜
+              </span>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(event) => setEventDate(event.target.value)}
+                className={`h-[62px] w-full rounded-2xl border bg-[#F5FBFA] px-4 text-xs text-[#64748B] outline-none focus:border-[#38D9C7] ${
+                  missingDate ? "border-[#EF4444]" : "border-[#DCE9E6]"
+                }`}
+              />
+              {missingDate && (
+                <p className="mt-1.5 text-[11px] text-[#EF4444]">직접 입력해 주세요.</p>
+              )}
             </label>
 
             <div className="grid grid-cols-2 gap-3">
-              <label>
-                <span className="mb-2 block text-xs font-extrabold text-[#0F172A]">
-                  날짜
-                </span>
-                <input
-                  type="date"
-                  value={eventDate}
-                  onChange={(event) => setEventDate(event.target.value)}
-                  className="h-[62px] w-full rounded-2xl border border-[#DCE9E6] bg-[#F5FBFA] px-4 text-xs text-[#64748B] outline-none focus:border-[#38D9C7]"
-                />
-              </label>
               <label>
                 <span className="mb-2 block text-xs font-extrabold text-[#0F172A]">
                   시작 시간
@@ -116,8 +182,29 @@ export default function EventRegister() {
                   type="time"
                   value={eventTime}
                   onChange={(event) => setEventTime(event.target.value)}
-                  className="h-[62px] w-full rounded-2xl border border-[#DCE9E6] bg-[#F5FBFA] px-4 text-xs text-[#64748B] outline-none focus:border-[#38D9C7]"
+                  className={`h-[62px] w-full rounded-2xl border bg-[#F5FBFA] px-4 text-xs text-[#64748B] outline-none focus:border-[#38D9C7] ${
+                    missingTime ? "border-[#EF4444]" : "border-[#DCE9E6]"
+                  }`}
                 />
+                {missingTime && (
+                  <p className="mt-1.5 text-[11px] text-[#EF4444]">직접 입력해 주세요.</p>
+                )}
+              </label>
+              <label>
+                <span className="mb-2 block text-xs font-extrabold text-[#0F172A]">
+                  종료 시간
+                </span>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(event) => setEndTime(event.target.value)}
+                  className={`h-[62px] w-full rounded-2xl border bg-[#F5FBFA] px-4 text-xs text-[#64748B] outline-none focus:border-[#38D9C7] ${
+                    missingEndTime ? "border-[#EF4444]" : "border-[#DCE9E6]"
+                  }`}
+                />
+                {missingEndTime && (
+                  <p className="mt-1.5 text-[11px] text-[#EF4444]">직접 입력해 주세요.</p>
+                )}
               </label>
             </div>
 
@@ -138,9 +225,10 @@ export default function EventRegister() {
         <div className="absolute bottom-0 left-0 right-0 bg-white px-5 pb-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.04)] safe-bottom">
           <button
             type="submit"
-            className="h-[62px] w-full rounded-2xl bg-[#38D9C7] text-base font-extrabold text-[#083D39]"
+            disabled={!canSubmit || isSubmitting}
+            className="h-[62px] w-full rounded-2xl bg-[#38D9C7] text-base font-extrabold text-[#083D39] disabled:opacity-40"
           >
-            다음
+            {isSubmitting ? "등록 중..." : "등록하기"}
           </button>
         </div>
       </form>
