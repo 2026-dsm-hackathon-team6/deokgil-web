@@ -1,11 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
 import LoadingScreen from "@/components/layout/LoadingScreen";
 import MobileFrame from "@/components/layout/MobileFrame";
 import Train from "../assets/Train.svg";
 // import Logo from "../assets/Logo.svg";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/components/ui/sonner";
+import {
+  generateChecklist,
+  generateSchedules,
+  getUpcomingEvents,
+  type Schedule,
+} from "@/lib/eventsApi";
+import {
+  clearConfirmedSchedule,
+  loadConfirmedSchedule,
+  saveConfirmedSchedule,
+  type ChecklistItem,
+  type ConfirmedSchedule,
+  type ScheduleItem,
+} from "@/lib/scheduleStore";
 import {
   Camera,
   CalendarDays,
@@ -21,28 +36,33 @@ import {
   Utensils,
 } from "lucide-react";
 
-const STORAGE_KEY = "deokgil-confirmed-schedule-v1";
-
-type ScheduleItem = {
-  time: string;
-  label: string;
-  description: string;
-  type: "start" | "arrival" | "activity" | "main" | "end";
-};
-
-type ChecklistItem = {
-  id: number;
-  label: string;
-  reason: string;
-  checked: boolean;
-};
-
-type ConfirmedSchedule = {
-  items: ScheduleItem[];
-  checklist: ChecklistItem[];
+type ActiveEvent = {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  venue: string;
 };
 
 type ViewMode = "landing" | "preferences" | "preview" | "confirmed";
+
+const formatEventDateLabel = (startAt: string) => {
+  const date = new Date(startAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+};
+
+const formatEventTimeLabel = (startAt: string) => {
+  const date = new Date(startAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+};
+
+const formatEventWeekdayDateLabel = (startAt: string) => {
+  const date = new Date(startAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "long" });
+};
 
 const preferences = [
   {
@@ -77,114 +97,116 @@ const preferences = [
   },
 ];
 
-const generatedSchedule: ScheduleItem[] = [
-  {
-    time: "15:40",
-    label: "집에서 출발",
-    description: "지하철 2호선 · 52분",
-    type: "start",
-  },
-  {
-    time: "16:32",
-    label: "KSPO DOME 도착",
-    description: "올림픽공원역 3번 출구",
-    type: "arrival",
-  },
-  {
-    time: "16:40",
-    label: "굿즈 현장 수령",
-    description: "예상 대기 20분",
-    type: "activity",
-  },
-  {
-    time: "17:20",
-    label: "입장 대기",
-    description: "2-1 게이트",
-    type: "activity",
-  },
-  {
-    time: "18:00",
-    label: "공연 시작",
-    description: "D구역 12열 8번",
-    type: "main",
-  },
-  {
-    time: "21:30",
-    label: "공연 종료 예정",
-    description: "종료 시간은 변경될 수 있어요",
-    type: "end",
-  },
+const PREFERENCE_TO_PRIORITY: Record<string, Schedule["type"]> = {
+  goods: "GOODS",
+  concert: "PERFORMANCE",
+  photo: "VISIT",
+  home: "RETURN",
+  food: "ETC",
+};
+
+const transportOptions: { id: "PUBLIC_TRANSPORT" | "CAR" | "WALK"; label: string }[] = [
+  { id: "PUBLIC_TRANSPORT", label: "대중교통" },
+  { id: "CAR", label: "자차" },
+  { id: "WALK", label: "도보" },
 ];
 
-const generatedChecklist: ChecklistItem[] = [
-  { id: 1, label: "모바일 티켓", reason: "입장 시 확인해요", checked: true },
-  { id: 2, label: "신분증", reason: "본인 확인에 필요해요", checked: false },
-  { id: 3, label: "응원봉", reason: "공연 필수 준비물이에요", checked: false },
-  {
-    id: 4,
-    label: "보조배터리",
-    reason: "긴 대기 시간에 대비해요",
-    checked: false,
-  },
-  {
-    id: 5,
-    label: "접이식 우산",
-    reason: "오후 9시 비 예보가 있어요",
-    checked: false,
-  },
-];
-
-function loadConfirmedSchedule(): ConfirmedSchedule | null {
-  try {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
-    if (!storedValue) return null;
-
-    const parsedValue = JSON.parse(storedValue) as { items?: ScheduleItem[] };
-    if (!Array.isArray(parsedValue.items)) return null;
-
-    const parsedChecklist = (parsedValue as { checklist?: ChecklistItem[] })
-      .checklist;
+// Real backend response uses a different type enum (MOVE/WAITING/GOODS/...)
+// than the display timeline (start/arrival/activity/main/end) — map it.
+function mapSchedulesToItems(schedules: Schedule[]): ScheduleItem[] {
+  const sorted = [...schedules].sort(
+    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+  );
+  return sorted.map((schedule, index) => {
+    const uiType: ScheduleItem["type"] =
+      schedule.type === "PERFORMANCE"
+        ? "main"
+        : index === 0
+          ? "start"
+          : index === sorted.length - 1
+            ? "end"
+            : "activity";
     return {
-      items: parsedValue.items,
-      checklist: Array.isArray(parsedChecklist)
-        ? parsedChecklist
-        : generatedChecklist.map((item) => ({ ...item })),
+      time: formatEventTimeLabel(schedule.startAt),
+      label: schedule.title,
+      description: `${formatEventTimeLabel(schedule.startAt)} - ${formatEventTimeLabel(schedule.endAt)}`,
+      type: uiType,
     };
-  } catch {
-    return null;
-  }
+  });
 }
 
 export default function ScheduleCreate() {
   const navigate = useNavigate();
-  const [confirmedSchedule, setConfirmedSchedule] =
-    useState<ConfirmedSchedule | null>(loadConfirmedSchedule);
-  const [viewMode, setViewMode] = useState<ViewMode>(() =>
-    confirmedSchedule ? "confirmed" : "landing",
-  );
+  const location = useLocation();
+  const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
+  const [isResolvingEvent, setIsResolvingEvent] = useState(true);
+  const [confirmedSchedule, setConfirmedSchedule] = useState<ConfirmedSchedule | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("landing");
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([
     "goods",
     "concert",
   ]);
-  const [draftSchedule, setDraftSchedule] = useState<ScheduleItem[]>(() =>
-    generatedSchedule.map((item) => ({ ...item })),
+  const [transportation, setTransportation] = useState<"PUBLIC_TRANSPORT" | "CAR" | "WALK">(
+    "PUBLIC_TRANSPORT",
   );
-  const [draftChecklist, setDraftChecklist] = useState<ChecklistItem[]>(() =>
-    generatedChecklist.map((item) => ({ ...item })),
-  );
+  const [draftSchedule, setDraftSchedule] = useState<ScheduleItem[]>([]);
+  const [draftChecklist, setDraftChecklist] = useState<ChecklistItem[]>([]);
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isGeneratingSchedule, setIsGeneratingSchedule] = useState(false);
-  const generationTimerRef = useRef<number | null>(null);
 
-  useEffect(
-    () => () => {
-      if (generationTimerRef.current !== null) {
-        window.clearTimeout(generationTimerRef.current);
-      }
-    },
-    [],
-  );
+  // Resolve which event this screen builds a schedule for: passed in
+  // directly from an event's "AI 일정 생성하기" button, or — when reached
+  // from the bottom nav with no context — the soonest upcoming event.
+  useEffect(() => {
+    const state = location.state as
+      | { eventId?: string; title?: string; startAt?: string; endAt?: string; placeName?: string }
+      | null;
+    if (state?.eventId) {
+      setActiveEvent({
+        id: state.eventId,
+        title: state.title || "",
+        startAt: state.startAt || "",
+        endAt: state.endAt || "",
+        venue: state.placeName || "",
+      });
+      setIsResolvingEvent(false);
+      return;
+    }
+
+    let active = true;
+    getUpcomingEvents()
+      .then((response) => {
+        if (!active) return;
+        const events = response.events ?? [];
+        const soonest = [...events].sort(
+          (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+        )[0];
+        if (soonest) {
+          setActiveEvent({
+            id: soonest.eventId,
+            title: soonest.title,
+            startAt: soonest.startAt,
+            endAt: soonest.endAt,
+            venue: soonest.placeName || "",
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setIsResolvingEvent(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [location.state]);
+
+  useEffect(() => {
+    if (!activeEvent) return;
+    const stored = loadConfirmedSchedule(activeEvent.id);
+    setConfirmedSchedule(stored);
+    setViewMode(stored ? "confirmed" : "landing");
+  }, [activeEvent?.id]);
 
   const togglePreference = (id: string) => {
     setSelectedPreferences((currentPreferences) =>
@@ -195,27 +217,23 @@ export default function ScheduleCreate() {
   };
 
   const confirmSchedule = () => {
-    const scheduleToSave = draftSchedule.map((item) => ({ ...item }));
-    const checklistToSave = draftChecklist.map((item) => ({ ...item }));
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        eventTitle: "2026 IU WORLD TOUR",
-        eventDate: "2026-07-18",
-        venue: "KSPO DOME",
-        confirmedAt: new Date().toISOString(),
-        items: scheduleToSave,
-        checklist: checklistToSave,
-      }),
-    );
-    setConfirmedSchedule({
-      items: scheduleToSave,
-      checklist: checklistToSave,
-    });
+    if (!activeEvent) return;
+    const scheduleToSave: ConfirmedSchedule = {
+      eventId: activeEvent.id,
+      eventTitle: activeEvent.title,
+      eventDate: activeEvent.startAt,
+      eventEndAt: activeEvent.endAt,
+      venue: activeEvent.venue,
+      items: draftSchedule.map((item) => ({ ...item })),
+      checklist: draftChecklist.map((item) => ({ ...item })),
+      confirmedAt: new Date().toISOString(),
+    };
+    saveConfirmedSchedule(scheduleToSave);
+    setConfirmedSchedule(scheduleToSave);
     setViewMode("confirmed");
   };
 
-  const toggleConfirmedChecklist = (id: number, checked: boolean) => {
+  const toggleConfirmedChecklist = (id: string, checked: boolean) => {
     setConfirmedSchedule((currentSchedule) => {
       if (!currentSchedule) return currentSchedule;
 
@@ -225,30 +243,47 @@ export default function ScheduleCreate() {
           item.id === id ? { ...item, checked } : item,
         ),
       };
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          eventTitle: "2026 IU WORLD TOUR",
-          eventDate: "2026-07-18",
-          venue: "KSPO DOME",
-          items: updatedSchedule.items,
-          checklist: updatedSchedule.checklist,
-        }),
-      );
+      saveConfirmedSchedule(updatedSchedule);
       return updatedSchedule;
     });
   };
 
-  const createSchedulePreview = () => {
+  const createSchedulePreview = async () => {
+    if (!activeEvent) return;
     setIsGeneratingSchedule(true);
-    generationTimerRef.current = window.setTimeout(() => {
-      setDraftSchedule(generatedSchedule.map((item) => ({ ...item })));
-      setDraftChecklist(generatedChecklist.map((item) => ({ ...item })));
+    const priorities = selectedPreferences
+      .map((id) => PREFERENCE_TO_PRIORITY[id])
+      .filter((type): type is Schedule["type"] => Boolean(type));
+    const purpose =
+      selectedPreferences
+        .map((id) => preferences.find((preference) => preference.id === id)?.label)
+        .filter(Boolean)
+        .join(", ") || "행사 일정";
+
+    try {
+      const [scheduleResponse, checklistResponse] = await Promise.all([
+        generateSchedules(activeEvent.id, { purpose, priorities, transportation }),
+        generateChecklist(activeEvent.id),
+      ]);
+      const schedules = scheduleResponse.schedules ?? [];
+      if (schedules.length === 0) {
+        throw new Error("AI가 생성한 일정이 비어 있어요.");
+      }
+      setDraftSchedule(mapSchedulesToItems(schedules));
+      setDraftChecklist(
+        (checklistResponse.items ?? []).map((item) => ({
+          id: item.checklistId,
+          label: item.content,
+          checked: item.checked,
+        })),
+      );
       setIsEditingSchedule(false);
       setViewMode("preview");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "일정을 생성하지 못했어요.");
+    } finally {
       setIsGeneratingSchedule(false);
-      generationTimerRef.current = null;
-    }, 1200);
+    }
   };
 
   const updateDraftItem = (
@@ -264,7 +299,7 @@ export default function ScheduleCreate() {
   };
 
   const updateDraftChecklistItem = (
-    id: number,
+    id: string,
     field: "label" | "reason",
     value: string,
   ) => {
@@ -279,7 +314,7 @@ export default function ScheduleCreate() {
     setDraftChecklist((items) => [
       ...items,
       {
-        id: Math.max(0, ...items.map((item) => item.id)) + 1,
+        id: crypto.randomUUID(),
         label: "새 준비물",
         reason: "필요한 내용을 입력해 주세요",
         checked: false,
@@ -287,12 +322,12 @@ export default function ScheduleCreate() {
     ]);
   };
 
-  const removeDraftChecklistItem = (id: number) => {
+  const removeDraftChecklistItem = (id: string) => {
     setDraftChecklist((items) => items.filter((item) => item.id !== id));
   };
 
   const resetSchedule = () => {
-    window.localStorage.removeItem(STORAGE_KEY);
+    if (activeEvent) clearConfirmedSchedule(activeEvent.id);
     setConfirmedSchedule(null);
     setIsDeleteDialogOpen(false);
     setViewMode("landing");
@@ -304,6 +339,41 @@ export default function ScheduleCreate() {
         message="맞춤 일정을 만들고 있어요"
         description="선택한 취향과 이동 시간을 반영하고 있어요."
       />
+    );
+  }
+
+  if (isResolvingEvent) {
+    return (
+      <LoadingScreen
+        message="일정을 불러오는 중이에요"
+        description="잠시만 기다려 주세요."
+      />
+    );
+  }
+
+  if (!activeEvent) {
+    return (
+      <MobileFrame>
+        <div className="flex h-dvh flex-col bg-white">
+          <header className="flex h-20 shrink-0 items-center px-5 pt-3">
+            <h1 className="text-xl font-extrabold text-[#0F172A]">일정</h1>
+          </header>
+          <main className="flex flex-1 flex-col items-center justify-center px-5 pb-28 text-center">
+            <h2 className="text-[22px] font-bold text-[#0F172A]">등록된 행사가 없어요</h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#64748B]">
+              일정을 만들려면 먼저 행사를 등록해 주세요.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/event/register")}
+              className="mt-6 h-12 rounded-2xl bg-[#38D9C7] px-6 text-sm font-extrabold text-[#063F3A]"
+            >
+              행사 등록하러 가기
+            </button>
+          </main>
+          <BottomNav />
+        </div>
+      </MobileFrame>
     );
   }
 
@@ -341,10 +411,11 @@ export default function ScheduleCreate() {
                   예정된 이벤트
                 </small>
                 <strong className="mt-1 block truncate text-sm text-[#0F172A]">
-                  2026 IU WORLD TOUR
+                  {activeEvent.title}
                 </strong>
                 <span className="mt-1 block text-[10px] text-[#64748B]">
-                  7월 18일 · KSPO DOME
+                  {formatEventDateLabel(activeEvent.startAt)}
+                  {activeEvent.venue ? ` · ${activeEvent.venue}` : ""}
                 </span>
               </span>
             </section>
@@ -389,19 +460,37 @@ export default function ScheduleCreate() {
             <section className="flex items-center justify-between rounded-2xl bg-[#E6FAF7] p-5">
               <div>
                 <p className="text-[10px] font-extrabold text-[#22B8AD]">
-                  7월 18일 토요일
+                  {formatEventWeekdayDateLabel(confirmedSchedule.eventDate)}
                 </p>
                 <h2 className="mt-2 text-base font-extrabold text-[#0F172A]">
-                  2026 IU WORLD TOUR
+                  {confirmedSchedule.eventTitle}
                 </h2>
                 <p className="mt-1 text-[11px] text-[#64748B]">
-                  KSPO DOME · 18:00
+                  {confirmedSchedule.venue}
+                  {confirmedSchedule.venue ? " · " : ""}
+                  {formatEventTimeLabel(confirmedSchedule.eventDate)}
                 </p>
               </div>
               <strong className="text-right text-2xl leading-none text-[#22B8AD]">
-                4<span className="ml-0.5 text-[10px]">시간</span>
-                <br />
-                20<span className="ml-0.5 text-[10px]">분</span>
+                {(() => {
+                  const minutes = Math.max(
+                    0,
+                    Math.round(
+                      (new Date(confirmedSchedule.eventEndAt).getTime() -
+                        new Date(confirmedSchedule.eventDate).getTime()) /
+                        60000,
+                    ),
+                  );
+                  return (
+                    <>
+                      {Math.floor(minutes / 60)}
+                      <span className="ml-0.5 text-[10px]">시간</span>
+                      <br />
+                      {minutes % 60}
+                      <span className="ml-0.5 text-[10px]">분</span>
+                    </>
+                  );
+                })()}
               </strong>
             </section>
 
@@ -666,6 +755,28 @@ export default function ScheduleCreate() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-6">
+                <span className="mb-2 block text-xs font-extrabold text-[#0F172A]">
+                  이동 수단
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {transportOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setTransportation(option.id)}
+                      className={`h-11 rounded-xl border text-xs font-bold ${
+                        transportation === option.id
+                          ? "border-[#22B8AD] bg-[#E6FAF7] text-[#22B8AD]"
+                          : "border-[#DCE9E6] bg-white text-[#64748B]"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button
