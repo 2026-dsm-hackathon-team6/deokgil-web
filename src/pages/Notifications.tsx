@@ -5,11 +5,12 @@ import Umbrella from "../assets/Umbrella.svg";
 import Bell from "../assets/Bell.svg";
 import Location from "../assets/Location.svg";
 import Event from "../assets/Event.svg";
-import { useState, type ElementType } from "react";
+import { useEffect, useState, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
+import { getNotifications } from "@/lib/deokgilApi";
 
 type NotificationItem = {
-  id: number;
+  id: string;
   group: "오늘" | "이전 알림";
   title: string;
   description: string;
@@ -22,7 +23,7 @@ type NotificationItem = {
 
 const initialNotifications: NotificationItem[] = [
   {
-    id: 1,
+    id: "1",
     group: "오늘",
     title: "이제 출발할 시간이에요",
     description: "15분 안에 출발하면 KSPO DOME에 여유롭게 도착해요.",
@@ -32,7 +33,7 @@ const initialNotifications: NotificationItem[] = [
     tone: "bg-[#F1F5F9] text-[#138A80]",
   },
   {
-    id: 2,
+    id: "2",
     group: "오늘",
     title: "우산을 챙겨 주세요",
     description: "오후 9시부터 비가 올 확률이 70%예요.",
@@ -42,7 +43,7 @@ const initialNotifications: NotificationItem[] = [
     tone: "bg-[#FFF7E6] text-[#D97706]",
   },
   {
-    id: 3,
+    id: "3",
     group: "오늘",
     title: "체크리스트가 업데이트됐어요",
     description: "날씨 정보를 반영해 준비물에 우산을 추가했어요.",
@@ -52,7 +53,7 @@ const initialNotifications: NotificationItem[] = [
     tone: "bg-[#F5FBFA] text-[#22B8AD]",
   },
   {
-    id: 4,
+    id: "4",
     group: "이전 알림",
     title: "귀가 경로를 준비했어요",
     description:
@@ -63,7 +64,7 @@ const initialNotifications: NotificationItem[] = [
     tone: "bg-[#F1F5F9] text-[#64748B]",
   },
   {
-    id: 5,
+    id: "5",
     group: "이전 알림",
     title: "이벤트가 등록됐어요",
     description: "2026 IU WORLD TOUR 일정 정보를 모두 확인했어요.",
@@ -79,7 +80,25 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState(initialNotifications);
   const unreadCount = notifications.filter((item) => item.unread).length;
 
-  const markAsRead = (id: number) => {
+  useEffect(() => {
+    getNotifications()
+      .then(({ notifications: response }) => {
+        if (!response) return;
+        setNotifications(response.map((item) => ({
+          id: item.notificationId,
+          group: item.notifyAt?.slice(0, 10) === new Date().toISOString().slice(0, 10) ? "오늘" : "이전 알림",
+          title: item.title || "알림",
+          description: item.content || "",
+          time: item.notifyAt ? new Date(item.notifyAt).toLocaleString("ko-KR") : "",
+          unread: !item.sent,
+          iconAsset: Bell,
+          tone: "bg-[#F5FBFA] text-[#22B8AD]",
+        })));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const markAsRead = (id: string) => {
     setNotifications((items) =>
       items.map((item) => (item.id === id ? { ...item, unread: false } : item)),
     );

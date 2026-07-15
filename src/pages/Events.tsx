@@ -1,52 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileFrame from "@/components/layout/MobileFrame";
-import { loadDeletedEventIds } from "@/lib/events";
+import { getUpcomingEvents, type EventSummary } from "@/lib/eventsApi";
 import { ChevronRight, Plus, Link } from "lucide-react";
 
-const upcomingEvents = [
-  {
-    id: 1,
-    day: "18",
-    month: "JUL",
-    title: "2026 IU WORLD TOUR",
-    venue: "KSPO DOME",
-    time: "18:00",
-    status: "D-5",
-    dateTone: "bg-[#DDF8F4] text-[#138A80]",
-  },
-  {
-    id: 2,
-    day: "02",
-    month: "AUG",
-    title: "SEVENTEEN FAN MEETING",
-    venue: "인스파이어 아레나",
-    time: "17:00",
-    status: "D-20",
-    dateTone: "bg-[#E6FAF7] text-[#0F9F95]",
-  },
-  {
-    id: 3,
-    day: "14",
-    month: "SEP",
-    title: "무신사 뷰티 페스타",
-    venue: "성수동 일대",
-    time: "11:00",
-    status: "D-63",
-    dateTone: "bg-[#F0FDFA] text-[#22B8AD]",
-  },
-];
+const getDayLabel = (startAt: string) => {
+  const days = Math.ceil(
+    (new Date(startAt).getTime() - new Date().setHours(0, 0, 0, 0)) /
+      (24 * 60 * 60 * 1000),
+  );
+  return days <= 0 ? "D-DAY" : `D-${days}`;
+};
 
 export default function Events() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
-  const [events] = useState(() => {
-    const deletedEventIds = new Set(loadDeletedEventIds());
-    return upcomingEvents.filter(
-      (event) => !deletedEventIds.has(String(event.id)),
-    );
-  });
+  const [events, setEvents] = useState<EventSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getUpcomingEvents()
+      .then((response) => active && setEvents(response.events ?? []))
+      .catch(() => active && setEvents([]))
+      .finally(() => active && setIsLoading(false));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <MobileFrame>
@@ -88,34 +70,40 @@ export default function Events() {
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-40 pt-5">
           {activeTab === "upcoming" ? (
             <>
-              {events.length > 0 ? (
+              {isLoading ? (
+                <div className="grid min-h-60 place-items-center text-sm text-[#94A3B8]">
+                  행사를 불러오는 중이에요.
+                </div>
+              ) : events.length > 0 ? (
                 <div className="space-y-3">
-                  {events.map((event) => (
+                  {events.map((event) => {
+                    const date = new Date(event.startAt);
+                    return (
                     <button
-                      key={event.id}
+                      key={event.eventId}
                       type="button"
-                      onClick={() => navigate(`/event/${event.id}`)}
+                      onClick={() => navigate(`/event/${event.eventId}`)}
                       className="flex w-full items-center gap-3 rounded-2xl border border-[#DCE9E6] bg-white p-3.5 text-left"
                     >
                       <span
-                        className={`flex h-15.5 w-14 shrink-0 flex-col items-center justify-center rounded-xl ${event.dateTone}`}
+                        className="flex h-15.5 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-[#E6FAF7] text-[#0F9F95]"
                       >
                         <strong className="text-2xl leading-none">
-                          {event.day}
+                          {String(date.getDate()).padStart(2, "0")}
                         </strong>
                         <small className="mt-1 text-[9px] font-extrabold tracking-wider">
-                          {event.month}
+                          {date.toLocaleString("en-US", { month: "short" }).toUpperCase()}
                         </small>
                       </span>
                       <span className="min-w-0 flex-1">
                         <small className="inline-flex rounded-md bg-[#E6FAF7] px-1.5 py-1 text-[9px] font-extrabold text-[#22B8AD]">
-                          {event.status}
+                          {getDayLabel(event.startAt)}
                         </small>
                         <strong className="mt-1.5 block truncate text-sm text-[#0F172A]">
                           {event.title}
                         </strong>
                         <span className="mt-1 block truncate text-[11px] text-[#64748B]">
-                          {event.venue} · {event.time}
+                          {event.placeName || "장소 미정"} · {date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false })}
                         </span>
                       </span>
                       <ChevronRight
@@ -123,7 +111,8 @@ export default function Events() {
                         className="shrink-0 text-[#CBD5E1]"
                       />
                     </button>
-                  ))}
+                  );
+                  })}
                 </div>
               ) : (
                 <div className="grid min-h-60 place-items-center text-center">
