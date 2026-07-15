@@ -4,8 +4,9 @@ import MobileFrame from "@/components/layout/MobileFrame";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { requestGoogleAuthorizationCode } from "@/lib/googleAuth";
-import { ApiError, loginWithGoogle, saveAuthTokens } from "@/lib/auth";
+import { ApiError, loginWithGoogle, saveAuthTokens, type AuthResponse } from "@/lib/auth";
 import { normalizeAuthenticatedUser, saveAuthenticatedUser, saveUserProfile } from "@/lib/profile";
+import { DEMO_ACCESS_TOKEN_PREFIX, demoUser, isBackendUnreachable } from "@/lib/demoFallback";
 import TotalLogo from "../assets/TotalLogo.svg";
 
 const isUnregisteredUserError = (error: unknown) =>
@@ -24,7 +25,19 @@ export default function Login() {
     setIsProcessing(true);
     try {
       const authorizationCode = await requestGoogleAuthorizationCode();
-      const response = await loginWithGoogle(authorizationCode);
+      let response: AuthResponse;
+      try {
+        response = await loginWithGoogle(authorizationCode);
+      } catch (error) {
+        // Backend unreachable: fall back to a local demo session so the
+        // rest of the app is still click-through-able. Real 4xx/5xx errors
+        // (e.g. unregistered account) still surface normally.
+        if (!isBackendUnreachable(error)) throw error;
+        response = {
+          accessToken: `${DEMO_ACCESS_TOKEN_PREFIX}${crypto.randomUUID()}`,
+          user: demoUser,
+        };
+      }
       saveAuthTokens(response);
       const user = normalizeAuthenticatedUser(response.user);
       saveAuthenticatedUser(user);

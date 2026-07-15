@@ -8,7 +8,14 @@ import { toast } from "@/components/ui/sonner";
 import { LogOut, ChevronRight, MapPin, UserX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { clearAuthenticatedUser, loadAuthenticatedUser, loadUserProfile } from "@/lib/profile";
-import { ApiError, clearAuthTokens, deleteAccountRequest, logoutRequest } from "@/lib/auth";
+import {
+  ApiError,
+  clearAuthTokens,
+  deleteAccountRequest,
+  getAccessToken,
+  logoutRequest,
+} from "@/lib/auth";
+import { isBackendUnreachable } from "@/lib/demoFallback";
 import { pastEvents } from "@/data/pastEvents";
 import Event from "../assets/Event.svg";
 
@@ -21,16 +28,25 @@ export default function MyPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      await logoutRequest();
+      // No local access token means there is no server session to revoke.
+      if (getAccessToken()) {
+        await logoutRequest();
+      }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "로그아웃 요청에 실패했어요.",
-      );
+      // An expired/already-invalid token, or an unreachable backend, both
+      // mean the desired state (logged out locally) is reached anyway —
+      // don't show a misleading logout failure message for either.
+      if (!(error instanceof ApiError && error.status === 401) && !isBackendUnreachable(error)) {
+        toast.error(
+          error instanceof Error ? error.message : "로그아웃 요청에 실패했어요.",
+        );
+      }
     } finally {
       clearAuthTokens();
       clearAuthenticatedUser();
@@ -41,9 +57,7 @@ export default function MyPage() {
 
   const handleWithdraw = async () => {
     if (isWithdrawing) return;
-    if (!window.confirm("정말 탈퇴하시겠어요? 계정 데이터는 복구할 수 없어요.")) {
-      return;
-    }
+    setShowWithdrawConfirm(false);
     setIsWithdrawing(true);
     try {
       await deleteAccountRequest();
@@ -221,7 +235,7 @@ export default function MyPage() {
           {/* Withdraw */}
           <button
             type="button"
-            onClick={handleWithdraw}
+            onClick={() => setShowWithdrawConfirm(true)}
             disabled={isWithdrawing}
             className="w-full flex items-center justify-center gap-2 py-3 text-xs text-[#94A3B8] font-medium cursor-pointer rounded-xl transition-colors disabled:opacity-60"
           >
@@ -231,6 +245,35 @@ export default function MyPage() {
         </div>
 
         <BottomNav />
+
+        {showWithdrawConfirm && (
+          <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/40 px-6 pb-8 md:items-center md:pb-0">
+            <div className="w-full max-w-80 rounded-3xl bg-[#FFFFFF] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
+              <h2 className="text-center text-base font-bold text-[#0F172A]">
+                정말 탈퇴하시겠어요?
+              </h2>
+              <p className="mt-2 text-center text-xs leading-relaxed text-[#64748B]">
+                계정 데이터는 삭제되며 복구할 수 없어요.
+              </p>
+              <div className="mt-6 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWithdrawConfirm(false)}
+                  className="h-12 flex-1 rounded-xl bg-slate-100 text-sm font-bold text-[#64748B] transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleWithdraw}
+                  className="h-12 flex-1 rounded-xl bg-[#EF4444] text-sm font-bold text-white transition-colors"
+                >
+                  탈퇴하기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MobileFrame>
   );
