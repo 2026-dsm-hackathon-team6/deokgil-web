@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MobileFrame from "@/components/layout/MobileFrame";
 import BottomNav from "@/components/layout/BottomNav";
@@ -6,41 +6,103 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { markEventAsDeleted } from "@/lib/events";
+import { toast } from "@/components/ui/sonner";
+import { deleteEvent, getEvent, type EventDetail as EventDetailData } from "@/lib/eventsApi";
+import { fetchWeatherEstimate, type WeatherEstimate } from "@/lib/travelEstimate";
+import {
+  clearConfirmedSchedule,
+  loadConfirmedSchedule,
+  saveConfirmedSchedule,
+  type ConfirmedSchedule,
+} from "@/lib/scheduleStore";
 import Clock2 from "../assets/Clock.svg";
 import Location from "../assets/Location.svg";
 import Sunny from "../assets/Sunny.svg";
 import Temperature from "../assets/Temperature.svg";
 import { ArrowLeft, Calendar, MapPin, Trash2, Clock } from "lucide-react";
 
-const checklist = [
-  { id: 1, label: "티켓 (모바일)", checked: true },
-  { id: 2, label: "신분증", checked: true },
-  { id: 3, label: "응원봉", checked: false },
-  { id: 4, label: "보조배터리", checked: false },
-  { id: 5, label: "물 / 간식", checked: false },
-  { id: 6, label: "우산 (비 예보)", checked: false },
-];
-
 export default function EventDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [checklistItems, setChecklistItems] = useState(checklist);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const completedItemCount = checklistItems.filter(
-    (item) => item.checked,
-  ).length;
+  const [event, setEvent] = useState<EventDetailData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [weather, setWeather] = useState<WeatherEstimate | null>(null);
+  const [confirmedSchedule, setConfirmedSchedule] = useState<ConfirmedSchedule | null>(null);
 
-  const handleChecklistChange = (id: number, checked: boolean) => {
-    setChecklistItems((items) =>
-      items.map((item) => (item.id === id ? { ...item, checked } : item)),
-    );
+  useEffect(() => {
+    if (!id) return;
+    setConfirmedSchedule(loadConfirmedSchedule(id));
+  }, [id]);
+
+  const handleChecklistChange = (itemId: string, checked: boolean) => {
+    setConfirmedSchedule((current) => {
+      if (!current) return current;
+      const updated = {
+        ...current,
+        checklist: current.checklist.map((item) =>
+          item.id === itemId ? { ...item, checked } : item,
+        ),
+      };
+      saveConfirmedSchedule(updated);
+      return updated;
+    });
   };
 
-  const handleDeleteEvent = () => {
-    if (id) markEventAsDeleted(id);
-    navigate("/events", { replace: true });
+  const loadEvent = () => {
+    if (!id) return;
+    setIsLoading(true);
+    setLoadError(null);
+    getEvent(id)
+      .then((data) => {
+        setEvent(data);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        const message =
+          error instanceof Error ? error.message : "행사를 불러오지 못했어요.";
+        toast.error(message);
+        setLoadError(message);
+        setIsLoading(false);
+      });
   };
+
+  useEffect(loadEvent, [id]);
+
+  useEffect(() => {
+    // Backend serializes absent coordinates as JSON null, not a missing
+    // key — `== null` catches both null and undefined.
+    if (event?.latitude == null || event?.longitude == null || !event.startAt) return;
+    const controller = new AbortController();
+    fetchWeatherEstimate(
+      { lat: event.latitude, lon: event.longitude },
+      new Date(event.startAt),
+      controller.signal,
+    )
+      .then(setWeather)
+      .catch(() => setWeather(null));
+    return () => controller.abort();
+  }, [event?.latitude, event?.longitude, event?.startAt]);
+
+  const handleDeleteEvent = async () => {
+    if (!id || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteEvent(id);
+      clearConfirmedSchedule(id);
+      navigate("/events", { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "행사를 삭제하지 못했어요.");
+      setIsDeleting(false);
+    }
+  };
+
+  const startAt = event ? new Date(event.startAt) : null;
+  const durationMinutes = event
+    ? Math.max(0, (new Date(event.endAt).getTime() - new Date(event.startAt).getTime()) / 60000)
+    : 0;
 
   return (
     <MobileFrame>
@@ -55,18 +117,40 @@ export default function EventDetail() {
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-[#0F172A]">
-              BTS 월드투어 서울
+              {event?.title || "행사 정보"}
             </h1>
-            <p className="text-xs text-[#64748B]">잠실종합운동장 주경기장</p>
+            <p className="text-xs text-[#64748B]">{event?.placeName || "행사장을 불러오는 중이에요."}</p>
           </div>
           <Badge className="bg-[#22B8AD] text-white text-xs font-bold px-2.5 py-1 rounded-lg">
-            D-7
+            {startAt ? `D-${Math.max(0, Math.ceil((startAt.getTime() - Date.now()) / 86400000))}` : "..."}
           </Badge>
         </header>
 
         {/* Content */}
         <div className="flex-1 px-5 pb-24 overflow-y-auto space-y-4">
-          {/* AI Briefing Card */}
+          {loadError && !event ? (
+            <Card className="p-6 border border-[#DCE9E6] text-center">
+              <p className="text-sm text-[#64748B]">{loadError}</p>
+              <button
+                type="button"
+                onClick={loadEvent}
+                disabled={isLoading}
+                className="mt-4 h-11 w-full rounded-xl bg-[#38D9C7] text-sm font-extrabold text-[#083D39] disabled:opacity-60"
+              >
+                {isLoading ? "다시 불러오는 중..." : "다시 시도"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-[#EF4444] transition-colors hover:bg-[#FEF2F2]"
+              >
+                <Trash2 size={16} />
+                이 이벤트 삭제
+              </button>
+            </Card>
+          ) : (
+          <>
+          {confirmedSchedule && (
           <Card className="p-4 bg-[#E6FAF7] border-none">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm font-bold text-[#138A80]">
@@ -79,21 +163,21 @@ export default function EventDetail() {
                 <img src={Clock2} alt="시계" className="w-5" />
                 <div>
                   <p className="text-[10px] text-[#64748B]">추천 출발</p>
-                  <p className="text-xs font-bold text-[#0F172A]">15:40</p>
+                  <p className="text-xs font-bold text-[#0F172A]">-</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
                 <img src={Location} alt="지도" className="w-5" />
                 <div>
                   <p className="text-[10px] text-[#64748B]">이동 시간</p>
-                  <p className="text-xs font-bold text-[#0F172A]">1시간 10분</p>
+                  <p className="text-xs font-bold text-[#0F172A]">-</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
                 <img src={Sunny} alt="날씨" className="w-5" />
                 <div>
                   <p className="text-[10px] text-[#64748B]">날씨</p>
-                  <p className="text-xs font-bold text-[#0F172A]">맑음</p>
+                  <p className="text-xs font-bold text-[#0F172A]">{weather?.label || "-"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2.5">
@@ -101,11 +185,14 @@ export default function EventDetail() {
 
                 <div>
                   <p className="text-[10px] text-[#64748B]">기온</p>
-                  <p className="text-xs font-bold text-[#0F172A]">28°C</p>
+                  <p className="text-xs font-bold text-[#0F172A]">
+                    {weather ? `${weather.tempC}°C` : "-"}
+                  </p>
                 </div>
               </div>
             </div>
           </Card>
+          )}
 
           {/* Event Info */}
           <Card className="p-4 border border-[#DCE9E6]">
@@ -114,24 +201,28 @@ export default function EventDetail() {
               <div className="flex items-center gap-3">
                 <Calendar size={14} className="text-[#64748B]" />
                 <span className="text-sm text-[#0F172A]">
-                  2026.07.20 (일) 18:00
+                  {startAt
+                    ? `${startAt.getFullYear()}.${String(startAt.getMonth() + 1).padStart(2, "0")}.${String(startAt.getDate()).padStart(2, "0")} ${startAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                    : "불러오는 중"}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin size={14} className="text-[#64748B]" />
                 <span className="text-sm text-[#0F172A]">
-                  잠실종합운동장 주경기장
+                  {event?.address || event?.placeName || "-"}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <Clock size={14} className="text-[#64748B]" />
                 <span className="text-sm text-[#0F172A]">
-                  약 2시간 30분 예상
+                  {durationMinutes ? `약 ${Math.floor(durationMinutes / 60)}시간 ${durationMinutes % 60}분` : "-"}
                 </span>
               </div>
             </div>
           </Card>
 
+          {confirmedSchedule && (
+          <>
           {/* AI Checklist */}
           <Card className="p-4 border border-[#DCE9E6]">
             <div className="flex items-center justify-between mb-3">
@@ -139,11 +230,12 @@ export default function EventDetail() {
                 <h3 className="text-sm font-bold text-[#0F172A]">체크리스트</h3>
               </div>
               <span className="text-[10px] text-[#64748B]">
-                {completedItemCount}/{checklistItems.length} 완료
+                {confirmedSchedule.checklist.filter((item) => item.checked).length}/
+                {confirmedSchedule.checklist.length} 완료
               </span>
             </div>
             <div className="space-y-2.5">
-              {checklistItems.map((item) => (
+              {confirmedSchedule.checklist.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
                   <Checkbox
                     checked={item.checked}
@@ -176,40 +268,56 @@ export default function EventDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#64748B]">공연 종료 예상</span>
                 <span className="text-xs font-semibold text-[#0F172A]">
-                  20:30
+                  {event
+                    ? new Date(event.endAt).toLocaleTimeString("ko-KR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })
+                    : "-"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#64748B]">추천 출발 시간</span>
-                <span className="text-xs font-semibold text-[#138A80]">
-                  20:40
-                </span>
+                <span className="text-xs font-semibold text-[#138A80]">-</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#64748B]">막차 시간</span>
-                <span className="text-xs font-semibold text-[#EF4444]">
-                  23:20
-                </span>
+                <span className="text-xs font-semibold text-[#EF4444]">-</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#64748B]">예상 도착</span>
-                <span className="text-xs font-semibold text-[#0F172A]">
-                  21:50
-                </span>
+                <span className="text-xs font-semibold text-[#0F172A]">-</span>
               </div>
             </div>
           </Card>
+          </>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-2 pt-2">
             <Button
-              onClick={() => navigate("/schedule/create")}
+              onClick={() =>
+                navigate("/schedule/create", {
+                  state: {
+                    eventId: id,
+                    title: event?.title,
+                    startAt: event?.startAt,
+                    endAt: event?.endAt,
+                    placeName: event?.placeName,
+                  },
+                })
+              }
               className="w-full h-12 rounded-xl bg-[#38D9C7] text-[#063F3A] text-sm font-extrabold cursor-pointer hover:bg-[#38D9C7]"
             >
               AI 일정 생성하기
             </Button>
             <Button
-              onClick={() => navigate("/venue-map")}
+              onClick={() =>
+                navigate("/venue-map", {
+                  state: { placeName: event?.placeName, address: event?.address },
+                })
+              }
               variant="outline"
               className="w-full h-12 rounded-xl border-[#DCE9E6] text-[#0F172A] text-sm font-semibold cursor-pointer"
             >
@@ -225,6 +333,8 @@ export default function EventDetail() {
               등록한 이벤트 삭제
             </button>
           </div>
+          </>
+          )}
         </div>
 
         <BottomNav />
@@ -267,9 +377,10 @@ export default function EventDetail() {
                 <button
                   type="button"
                   onClick={handleDeleteEvent}
+                  disabled={isDeleting}
                   className="h-12 rounded-xl bg-[#EF4444] text-sm font-bold text-white"
                 >
-                  삭제
+                  {isDeleting ? "삭제 중..." : "삭제"}
                 </button>
               </div>
             </section>
